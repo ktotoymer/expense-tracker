@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">Expense Tracker</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header>
+    <div class="container">
+        <nav class="navbar">
+            <a href="/" class="logo">💰 Expense Tracker</a>
+            <ul class="nav-links">
+                <li><a href="/">Главная</a></li>
+                <li><a href="/features">Возможности</a></li>
+                <li><a href="/about">О проекте</a></li>
+                <li><a href="/login">Вход</a></li>
+                <li><a href="/register">Регистрация</a></li>
+            </ul>
+        </nav>
+    </div>
+</header>
+
+<main>
+    <section class="hero">
+        <div class="container">
+            <h1 th:text="${welcomeMessage}">Добро пожаловать в Expense Tracker!</h1>
+            <p>Простое и удобное приложение для контроля ваших расходов. Начните управлять своими финансами уже сегодня!</p>
+            <a href="#" class="cta-button">Начать использовать</a>
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="container">
+            <h2 class="section-title">Наши возможности</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Аналитика расходов</h3>
+                    <p>Наглядные графики и отчеты по вашим тратам</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3>Доступ с любого устройства</h3>
+                    <p>Работает на компьютере, планшете и телефоне</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Безопасность данных</h3>
+                    <p>Ваши финансовые данные защищены</p>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer>
+    <div class="container">
+        <p>© 2024 Expense Tracker. Все права защищены.</p>
+        <p>Контакт: info@expensetracker.com</p>
+    </div>
+</footer>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
