@@ -1,17 +1,292 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
 <head>
-  <title>Регистрация</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Регистрация - Expense Tracker</title>
   <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-<h2>Регистрация</h2>
-<form method="post" action="/register">
-  <label>Логин:</label>
-  <input type="text" name="username" required>
-  <label>Пароль:</label>
-  <input type="password" name="password" required>
-  <button type="submit">Зарегистрироваться</button>
-</form>
+<div class="form-container">
+  <div class="form-wrapper">
+    <div class="form-header">
+      <a href="/" class="logo">
+        <i class="fas fa-chart-pie"></i>
+        Expense Tracker
+      </a>
+      <h2 class="form-title">Создать аккаунт</h2>
+      <p class="form-subtitle">Присоединяйтесь к нашему сообществу</p>
+    </div>
+
+    <form method="post" action="/register" class="register-form" id="registerForm" th:action="@{/register}">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="firstName">
+            <i class="fas fa-user"></i> Имя
+          </label>
+          <input type="text"
+                 id="firstName"
+                 name="firstName"
+                 placeholder="Введите ваше имя">
+        </div>
+
+        <div class="form-group">
+          <label for="lastName">
+            <i class="fas fa-user"></i> Фамилия
+          </label>
+          <input type="text"
+                 id="lastName"
+                 name="lastName"
+                 placeholder="Введите вашу фамилию">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="email">
+          <i class="fas fa-envelope"></i> Email
+        </label>
+        <input type="email"
+               id="email"
+               name="email"
+               placeholder="example@mail.com"
+               required>
+        <div class="error"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="username">
+          <i class="fas fa-user-circle"></i> Логин
+        </label>
+        <input type="text"
+               id="username"
+               name="username"
+               placeholder="Придумайте логин"
+               required>
+        <div class="error"></div>
+        <div class="hint">Минимум 3 символа, только буквы и цифры</div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">
+          <i class="fas fa-lock"></i> Пароль
+        </label>
+        <div class="password-wrapper">
+          <input type="password"
+                 id="password"
+                 name="password"
+                 placeholder="Придумайте пароль"
+                 required>
+          <button type="button" class="toggle-password">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+        <div class="password-strength">
+          <div class="strength-bar">
+            <div class="strength-fill"></div>
+          </div>
+          <div class="strength-text">Сложность пароля: слабый</div>
+        </div>
+        <div class="error"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="confirmPassword">
+          <i class="fas fa-lock"></i> Подтверждение пароля
+        </label>
+        <div class="password-wrapper">
+          <input type="password"
+                 id="confirmPassword"
+                 name="confirmPassword"
+                 placeholder="Повторите пароль"
+                 required>
+          <button type="button" class="toggle-password">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+        <div class="error"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="role">
+          <i class="fas fa-user-tag"></i> Роль
+        </label>
+        <select id="role" name="role" required>
+          <option value="">Выберите роль</option>
+          <option value="ROLE_USER">Пользователь</option>
+          <option value="ROLE_ACCOUNTANT">Бухгалтер</option>
+        </select>
+        <div class="error"></div>
+      </div>
+
+      <div class="form-group">
+        <label class="checkbox">
+          <input type="checkbox" id="terms" name="terms" required>
+          <span>Я соглашаюсь с <a href="/terms">условиями использования</a> и <a href="/privacy">политикой конфиденциальности</a></span>
+        </label>
+        <div class="error" id="termsError"></div>
+      </div>
+
+      <div class="form-group captcha-group">
+        <label for="captcha">
+          <i class="fas fa-shield-alt"></i> Проверка безопасности
+        </label>
+        <div class="captcha-container">
+          <div class="captcha-question" id="captchaQuestion" th:text="${captchaQuestion}">5 + 3 = ?</div>
+          <button type="button" class="btn-refresh-captcha" id="refreshCaptcha" title="Обновить капчу">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+        </div>
+        <input type="hidden" id="captchaId" name="captchaId" th:value="${captchaId}">
+        <input type="text"
+               id="captchaAnswer"
+               name="captchaAnswer"
+               placeholder="Введите ответ"
+               required
+               maxlength="3">
+        <div class="error" id="captchaError"></div>
+      </div>
+
+      <div th:if="${error}" class="alert alert-error" style="background-color: #fee; color: #c33; padding: 12px; border-radius: 4px; margin-bottom: 16px; border: 1px solid #fcc;">
+        <i class="fas fa-exclamation-circle"></i> <span th:text="${error}"></span>
+      </div>
+
+      <button type="submit" class="btn-submit">
+        <i class="fas fa-user-plus"></i> Зарегистрироваться
+      </button>
+
+      <div class="form-footer">
+        <p>Уже есть аккаунт? <a href="/login">Войти</a></p>
+        <p><a href="/">← Вернуться на главную</a></p>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  // Password strength indicator
+  document.getElementById('password')?.addEventListener('input', function() {
+      const password = this.value;
+      const strengthBar = document.querySelector('.strength-fill');
+      const strengthText = document.querySelector('.strength-text');
+
+      let strength = 0;
+      let color = '#e74c3c';
+      let text = 'Слабый';
+
+      if (password.length >= 8) strength += 1;
+      if (/[A-Z]/.test(password)) strength += 1;
+      if (/[0-9]/.test(password)) strength += 1;
+      if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+
+      switch(strength) {
+          case 0:
+          case 1:
+              color = '#e74c3c';
+              text = 'Слабый';
+              break;
+          case 2:
+              color = '#f39c12';
+              text = 'Средний';
+              break;
+          case 3:
+              color = '#3498db';
+              text = 'Хороший';
+              break;
+          case 4:
+              color = '#2ecc71';
+              text = 'Надежный';
+              break;
+      }
+
+      strengthBar.style.width = (strength * 25) + '%';
+      strengthBar.style.background = color;
+      strengthText.textContent = 'Сложность пароля: ' + text;
+      strengthText.style.color = color;
+  });
+
+  // Password confirmation
+  document.getElementById('confirmPassword')?.addEventListener('input', function() {
+      const password = document.getElementById('password').value;
+      const confirmPassword = this.value;
+      const errorElement = this.parentElement.parentElement.querySelector('.error');
+
+      if (confirmPassword && password !== confirmPassword) {
+          errorElement.textContent = 'Пароли не совпадают';
+          errorElement.style.display = 'block';
+          this.classList.add('error-input');
+      } else {
+          errorElement.style.display = 'none';
+          this.classList.remove('error-input');
+      }
+  });
+
+  // Toggle password visibility
+  document.querySelectorAll('.toggle-password').forEach(button => {
+      button.addEventListener('click', function() {
+          const input = this.parentElement.querySelector('input');
+          const icon = this.querySelector('i');
+
+          if (input.type === 'password') {
+              input.type = 'text';
+              icon.classList.remove('fa-eye');
+              icon.classList.add('fa-eye-slash');
+          } else {
+              input.type = 'password';
+              icon.classList.remove('fa-eye-slash');
+              icon.classList.add('fa-eye');
+          }
+      });
+  });
+
+  // Captcha refresh functionality
+  document.getElementById('refreshCaptcha')?.addEventListener('click', function() {
+      fetch('/api/captcha')
+          .then(response => response.json())
+          .then(data => {
+              document.getElementById('captchaId').value = data.id;
+              document.getElementById('captchaQuestion').textContent = data.question;
+              document.getElementById('captchaAnswer').value = '';
+              document.getElementById('captchaError').style.display = 'none';
+          })
+          .catch(error => {
+              console.error('Ошибка при обновлении капчи:', error);
+          });
+  });
+
+  // Form validation
+  document.getElementById('registerForm')?.addEventListener('submit', function(e) {
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      const terms = document.getElementById('terms').checked;
+      const captchaAnswer = document.getElementById('captchaAnswer').value;
+
+      let isValid = true;
+
+      if (password !== confirmPassword) {
+          e.preventDefault();
+          alert('Пароли не совпадают');
+          isValid = false;
+      }
+
+      if (!terms) {
+          e.preventDefault();
+          document.getElementById('termsError').textContent = 'Необходимо принять условия использования';
+          document.getElementById('termsError').style.display = 'block';
+          isValid = false;
+      }
+
+      if (!captchaAnswer || captchaAnswer.trim() === '') {
+          e.preventDefault();
+          document.getElementById('captchaError').textContent = 'Пожалуйста, решите капчу';
+          document.getElementById('captchaError').style.display = 'block';
+          isValid = false;
+      }
+
+      return isValid;
+  });
+</script>
 </body>
 </html>

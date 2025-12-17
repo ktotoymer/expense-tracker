@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Бюджеты - Expense Tracker</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="dashboard-container">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="user-info">
+        <div class="user-avatar">
+          <i class="fas fa-user"></i>
+        </div>
+        <div class="user-details">
+          <h3 th:text="${user?.firstName} + ' ' + ${user?.lastName}">Пользователь</h3>
+          <p class="user-role">
+            <i class="fas fa-user-tag"></i>
+            <span th:text="${user?.roles?.get(0)?.name}">USER</span>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-menu">
+      <ul>
+        <li>
+          <a href="/user/dashboard">
+            <i class="fas fa-tachometer-alt"></i>
+            <span>Панель управления</span>
+          </a>
+        </li>
+        <li>
+          <a href="/user/transactions">
+            <i class="fas fa-exchange-alt"></i>
+            <span>Транзакции</span>
+          </a>
+        </li>
+        <li>
+          <a href="/user/categories">
+            <i class="fas fa-tags"></i>
+            <span>Категории</span>
+          </a>
+        </li>
+        <li>
+          <a href="/user/budgets" class="active">
+            <i class="fas fa-wallet"></i>
+            <span>Бюджеты</span>
+          </a>
+        </li>
+        <li>
+          <a href="/user/reports">
+            <i class="fas fa-chart-bar"></i>
+            <span>Отчеты</span>
+          </a>
+        </li>
+        <li>
+          <a href="/user/settings">
+            <i class="fas fa-cog"></i>
+            <span>Настройки</span>
+          </a>
+        </li>
+        <li>
+          <a href="/user/help">
+            <i class="fas fa-question-circle"></i>
+            <span>Помощь</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="sidebar-footer">
+      <a th:href="@{/logout}" class="logout-btn">
+        <i class="fas fa-sign-out-alt"></i>
+        <span>Выйти</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <header class="content-header">
+      <div class="header-left">
+        <h1>Бюджеты</h1>
+        <p class="welcome-message">Управление вашими бюджетами</p>
+      </div>
+      <div class="header-right">
+        <button class="btn btn-primary" onclick="showAddBudgetModal()">
+          <i class="fas fa-plus"></i> Создать бюджет
+        </button>
+      </div>
+    </header>
+
+    <!-- Success/Error Messages -->
+    <div th:if="${success}" class="alert alert-success" style="margin: 1rem 2rem;">
+      <i class="fas fa-check-circle"></i> <span th:text="${success}"></span>
+    </div>
+    
+    <div th:if="${error}" class="alert alert-error" style="margin: 1rem 2rem;">
+      <i class="fas fa-exclamation-circle"></i> <span th:text="${error}"></span>
+    </div>
+
+    <!-- Budgets Grid -->
+    <div class="budgets-grid" style="margin: 1rem 2rem;">
+      <div class="budget-card" th:each="budget : ${budgets}">
+        <div class="budget-header">
+          <h4 th:text="${budget.name}">Бюджет</h4>
+          <span class="budget-status"
+                th:classappend="${budget.usage <= 80 ? 'good' : (budget.usage <= 100 ? 'warning' : 'danger')}">
+            <span th:text="${budget.usage} + '%'">65%</span>
+          </span>
+        </div>
+        <div class="budget-progress">
+          <div class="progress">
+            <div class="progress-bar"
+                 th:classappend="${budget.usage <= 80 ? 'good' : (budget.usage <= 100 ? 'warning' : 'danger')}"
+                 th:style="'width: ' + ${budget.usage} + '%'"></div>
+          </div>
+        </div>
+        <div class="budget-info">
+          <div class="budget-amount">
+            <span class="spent" th:text="'₽' + ${#numbers.formatDecimal(budget.spent, 0, 'COMMA', 2, 'POINT')}">₽13,000</span>
+            <span class="total" th:text="' / ₽' + ${#numbers.formatDecimal(budget.amount, 0, 'COMMA', 2, 'POINT')}">/ ₽20,000</span>
+          </div>
+          <div class="budget-left" th:text="'Осталось: ₽' + ${#numbers.formatDecimal(budget.amount - budget.spent, 0, 'COMMA', 2, 'POINT')}">
+            Осталось: ₽7,000
+          </div>
+        </div>
+        <div class="budget-category" th:text="${budget.category?.name ?: 'Общий бюджет'}">
+          Категория
+        </div>
+        <div class="budget-period" style="margin-top: 0.5rem; color: #7f8c8d; font-size: 0.9rem;">
+          <i class="fas fa-calendar"></i>
+          <span th:text="${#temporals.format(budget.startDate, 'dd.MM.yyyy')} + ' - ' + ${#temporals.format(budget.endDate, 'dd.MM.yyyy')}">
+            01.01.2024 - 31.01.2024
+          </span>
+        </div>
+        <div class="budget-actions" style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+          <form th:action="@{/user/budgets/{id}/delete(id=${budget.id})}" method="post" style="flex: 1;">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <button type="submit" class="btn btn-secondary" onclick="return confirm('Вы уверены, что хотите удалить этот бюджет?');">
+              <i class="fas fa-trash"></i> Удалить
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div th:unless="${budgets?.size() > 0}" class="empty-budgets">
+        <i class="fas fa-wallet"></i>
+        <p>У вас пока нет бюджетов</p>
+        <button class="btn btn-outline" onclick="showAddBudgetModal()">
+          <i class="fas fa-plus"></i> Создать бюджет
+        </button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Add Budget Modal -->
+<div class="modal" id="addBudgetModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Создать бюджет</h3>
+      <button class="modal-close" onclick="closeAddBudgetModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form id="addBudgetForm" method="post" action="/user/budgets/add" th:action="@{/user/budgets/add}">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <div class="form-group">
+          <label for="budgetName">Название *</label>
+          <input type="text" id="budgetName" name="name" required placeholder="Например: Бюджет на продукты">
+        </div>
+        <div class="form-group">
+          <label for="budgetAmount">Сумма *</label>
+          <input type="number" id="budgetAmount" name="amount" step="0.01" min="0.01" required>
+        </div>
+        <div class="form-group">
+          <label for="budgetCategory">Категория</label>
+          <select id="budgetCategory" name="categoryId">
+            <option value="">Общий бюджет</option>
+            <option th:each="category : ${categories}" th:value="${category.id}" th:text="${category.name}"></option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="budgetStartDate">Начало периода *</label>
+          <input type="date" id="budgetStartDate" name="startDate" required>
+        </div>
+        <div class="form-group">
+          <label for="budgetEndDate">Конец периода *</label>
+          <input type="date" id="budgetEndDate" name="endDate" required>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeAddBudgetModal()">
+            Отмена
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Создать
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  function showAddBudgetModal() {
+    const modal = document.getElementById('addBudgetModal');
+    if (modal) {
+      modal.classList.add('active');
+      const startDate = document.getElementById('budgetStartDate');
+      const endDate = document.getElementById('budgetEndDate');
+      if (startDate && !startDate.value) {
+        const today = new Date();
+        startDate.valueAsDate = new Date(today.getFullYear(), today.getMonth(), 1);
+      }
+      if (endDate && !endDate.value) {
+        const today = new Date();
+        endDate.valueAsDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      }
+    }
+  }
+
+  function closeAddBudgetModal() {
+    const modal = document.getElementById('addBudgetModal');
+    if (modal) {
+      modal.classList.remove('active');
+      const form = document.getElementById('addBudgetForm');
+      if (form) {
+        form.reset();
+      }
+    }
+  }
+
+  window.onclick = function(event) {
+    const modal = document.getElementById('addBudgetModal');
+    if (event.target === modal) {
+      closeAddBudgetModal();
+    }
+  }
+</script>
+</body>
+</html>
+

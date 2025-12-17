@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Пользователь - Expense Tracker</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="dashboard-container">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="user-info">
+        <div class="user-avatar" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+          <i class="fas fa-user-shield"></i>
+        </div>
+        <div class="user-details">
+          <h3 th:text="${user?.firstName} + ' ' + ${user?.lastName}">Администратор</h3>
+          <p class="user-role">
+            <i class="fas fa-user-shield"></i>
+            <span>ADMIN</span>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-menu">
+      <ul>
+        <li>
+          <a href="/admin/dashboard">
+            <i class="fas fa-tachometer-alt"></i>
+            <span>Панель управления</span>
+          </a>
+        </li>
+        <li>
+          <a href="/admin/users" class="active">
+            <i class="fas fa-users"></i>
+            <span>Пользователи</span>
+          </a>
+        </li>
+        <li>
+          <a href="/admin/transactions">
+            <i class="fas fa-exchange-alt"></i>
+            <span>Все транзакции</span>
+          </a>
+        </li>
+        <li>
+          <a href="/admin/reports">
+            <i class="fas fa-chart-bar"></i>
+            <span>Отчеты</span>
+          </a>
+        </li>
+        <li>
+          <a href="/user/dashboard">
+            <i class="fas fa-user"></i>
+            <span>Личный кабинет</span>
+          </a>
+        </li>
+        <li>
+          <a href="/user/settings">
+            <i class="fas fa-cog"></i>
+            <span>Настройки</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="sidebar-footer">
+      <a th:href="@{/logout}" class="logout-btn">
+        <i class="fas fa-sign-out-alt"></i>
+        <span>Выйти</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <header class="content-header">
+      <div class="header-left">
+        <h1>Информация о пользователе</h1>
+        <p class="welcome-message">
+          <a href="/admin/users" style="color: #667eea; text-decoration: none;">
+            <i class="fas fa-arrow-left"></i> Назад к списку пользователей
+          </a>
+        </p>
+      </div>
+    </header>
+
+    <!-- Success/Error Messages -->
+    <div th:if="${success}" class="alert alert-success" style="margin: 1rem 2rem;">
+      <i class="fas fa-check-circle"></i> <span th:text="${success}"></span>
+    </div>
+    
+    <div th:if="${error}" class="alert alert-error" style="margin: 1rem 2rem;">
+      <i class="fas fa-exclamation-circle"></i> <span th:text="${error}"></span>
+    </div>
+
+    <!-- User Stats -->
+    <div class="stats-grid" style="margin: 1rem 2rem;">
+      <div class="stat-card">
+        <div class="stat-icon income">
+          <i class="fas fa-arrow-up"></i>
+        </div>
+        <div class="stat-info">
+          <h3>Доходы</h3>
+          <p class="stat-amount" th:text="'₽' + ${#numbers.formatDecimal(userIncome ?: 0, 0, 'COMMA', 2, 'POINT')}">₽0</p>
+          <p class="stat-change">За текущий месяц</p>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon expense">
+          <i class="fas fa-arrow-down"></i>
+        </div>
+        <div class="stat-info">
+          <h3>Расходы</h3>
+          <p class="stat-amount" th:text="'₽' + ${#numbers.formatDecimal(userExpense ?: 0, 0, 'COMMA', 2, 'POINT')}">₽0</p>
+          <p class="stat-change">За текущий месяц</p>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon budget">
+          <i class="fas fa-exchange-alt"></i>
+        </div>
+        <div class="stat-info">
+          <h3>Транзакций</h3>
+          <p class="stat-amount" th:text="${userTransactionsCount}">0</p>
+          <p class="stat-change">Всего</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit User Form -->
+    <div class="card" style="margin: 1rem 2rem;">
+      <div class="card-header">
+        <h3><i class="fas fa-edit"></i> Редактирование пользователя</h3>
+      </div>
+      <div style="padding: 1.5rem;">
+        <form method="post" th:action="@{/admin/users/{id}/update(id=${targetUser.id})}">
+          <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+          
+          <div class="form-group">
+            <label for="firstName">Имя *</label>
+            <input type="text" id="firstName" name="firstName" th:value="${targetUser.firstName}" required>
+          </div>
+
+          <div class="form-group">
+            <label for="lastName">Фамилия</label>
+            <input type="text" id="lastName" name="lastName" th:value="${targetUser.lastName}">
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email *</label>
+            <input type="email" id="email" name="email" th:value="${targetUser.email}" required>
+          </div>
+
+          <div class="form-group">
+            <label for="username">Логин</label>
+            <input type="text" id="username" th:value="${targetUser.username}" readonly style="background-color: #f8f9fa;">
+            <small style="color: #7f8c8d;">Логин нельзя изменить</small>
+          </div>
+
+          <div class="form-group">
+            <label for="password">Новый пароль</label>
+            <input type="password" id="password" name="password" placeholder="Оставьте пустым, чтобы не менять">
+            <small style="color: #7f8c8d;">Оставьте пустым, если не хотите менять пароль</small>
+          </div>
+
+          <div class="form-group">
+            <label>Роли *</label>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem; margin-top: 0.5rem;">
+              <label class="checkbox" th:each="role : ${allRoles}">
+                <input type="checkbox" 
+                       name="roleIds" 
+                       th:value="${role.id}"
+                       th:checked="${targetUser.roles.contains(role)}">
+                <span th:text="${role.name}">ROLE_USER</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <a href="/admin/users" class="btn btn-secondary" style="text-decoration: none;">
+              Отмена
+            </a>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save"></i> Сохранить изменения
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="card" style="margin: 1rem 2rem; border: 2px solid #e74c3c;">
+      <div class="card-header" style="background-color: #fee; border-bottom: 2px solid #e74c3c;">
+        <h3 style="color: #e74c3c;"><i class="fas fa-exclamation-triangle"></i> Опасная зона</h3>
+      </div>
+      <div style="padding: 1.5rem;">
+        <p style="color: #7f8c8d; margin-bottom: 1rem;">
+          Удаление пользователя необратимо. Все данные пользователя будут удалены.
+        </p>
+        <form th:if="${targetUser.id != user.id}" 
+              method="post" 
+              th:action="@{/admin/users/{id}/delete(id=${targetUser.id})}"
+              onsubmit="return confirm('Вы уверены, что хотите удалить этого пользователя? Это действие необратимо!');">
+          <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+          <button type="submit" class="btn" style="background-color: #e74c3c; color: white;">
+            <i class="fas fa-trash"></i> Удалить пользователя
+          </button>
+        </form>
+        <p th:if="${targetUser.id == user.id}" style="color: #e74c3c;">
+          <i class="fas fa-info-circle"></i> Вы не можете удалить самого себя
+        </p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тарифы - Expense Tracker</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="app-container">
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <a href="/" class="logo">
+                    <i class="fas fa-chart-pie"></i>
+                    Expense Tracker
+                </a>
+                <ul class="nav-links">
+                    <li><a href="/"><i class="fas fa-home"></i> Главная</a></li>
+                    <li><a href="/features"><i class="fas fa-star"></i> Возможности</a></li>
+                    <li><a href="/about"><i class="fas fa-info-circle"></i> О проекте</a></li>
+                    <li><a href="/pricing" class="active"><i class="fas fa-tag"></i> Тарифы</a></li>
+                    <li><a href="/contact"><i class="fas fa-envelope"></i> Контакты</a></li>
+
+                    <div class="auth-buttons">
+                        <a href="/login" class="btn btn-outline">
+                            <i class="fas fa-sign-in-alt"></i> Вход
+                        </a>
+                        <a href="/register" class="btn btn-primary">
+                            <i class="fas fa-user-plus"></i> Регистрация
+                        </a>
+                    </div>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="container">
+                <h1>Выберите подходящий тариф</h1>
+                <p class="subtitle">Найдите план, который идеально подходит для ваших потребностей</p>
+            </div>
+        </section>
+
+        <!-- Pricing Section -->
+        <section class="features">
+            <div class="container">
+                <div class="pricing-grid">
+                    <!-- Free Plan -->
+                    <div class="pricing-card">
+                        <div class="pricing-header">
+                            <h3>Бесплатный</h3>
+                            <div class="pricing-price">
+                                <span class="price">₽0</span>
+                                <span class="period">/месяц</span>
+                            </div>
+                            <p class="pricing-description">Идеально для начала работы</p>
+                        </div>
+                        <ul class="pricing-features">
+                            <li><i class="fas fa-check"></i> До 100 транзакций в месяц</li>
+                            <li><i class="fas fa-check"></i> Базовые категории</li>
+                            <li><i class="fas fa-check"></i> Простая аналитика</li>
+                            <li><i class="fas fa-check"></i> 1 бюджет</li>
+                            <li><i class="fas fa-check"></i> Мобильное приложение</li>
+                            <li><i class="fas fa-times"></i> Экспорт данных</li>
+                            <li><i class="fas fa-times"></i> Совместный доступ</li>
+                            <li><i class="fas fa-times"></i> Приоритетная поддержка</li>
+                        </ul>
+                        <a href="/register" class="btn btn-outline pricing-btn">Начать бесплатно</a>
+                    </div>
+
+                    <!-- Pro Plan -->
+                    <div class="pricing-card featured">
+                        <div class="pricing-badge">Популярный</div>
+                        <div class="pricing-header">
+                            <h3>Профессиональный</h3>
+                            <div class="pricing-price">
+                                <span class="price">₽499</span>
+                                <span class="period">/месяц</span>
+                            </div>
+                            <p class="pricing-description">Для активных пользователей</p>
+                        </div>
+                        <ul class="pricing-features">
+                            <li><i class="fas fa-check"></i> Неограниченные транзакции</li>
+                            <li><i class="fas fa-check"></i> Неограниченные категории</li>
+                            <li><i class="fas fa-check"></i> Расширенная аналитика</li>
+                            <li><i class="fas fa-check"></i> Неограниченные бюджеты</li>
+                            <li><i class="fas fa-check"></i> Экспорт в Excel, PDF, CSV</li>
+                            <li><i class="fas fa-check"></i> Совместный доступ (до 5 пользователей)</li>
+                            <li><i class="fas fa-check"></i> Приоритетная поддержка</li>
+                            <li><i class="fas fa-check"></i> Резервное копирование</li>
+                        </ul>
+                        <a href="/register" class="btn btn-primary pricing-btn">Выбрать план</a>
+                    </div>
+
+                    <!-- Enterprise Plan -->
+                    <div class="pricing-card">
+                        <div class="pricing-header">
+                            <h3>Корпоративный</h3>
+                            <div class="pricing-price">
+                                <span class="price">₽1,999</span>
+                                <span class="period">/месяц</span>
+                            </div>
+                            <p class="pricing-description">Для команд и организаций</p>
+                        </div>
+                        <ul class="pricing-features">
+                            <li><i class="fas fa-check"></i> Все из Профессионального</li>
+                            <li><i class="fas fa-check"></i> Неограниченные пользователи</li>
+                            <li><i class="fas fa-check"></i> API доступ</li>
+                            <li><i class="fas fa-check"></i> Кастомные интеграции</li>
+                            <li><i class="fas fa-check"></i> Персональный менеджер</li>
+                            <li><i class="fas fa-check"></i> Обучение команды</li>
+                            <li><i class="fas fa-check"></i> SLA 99.9%</li>
+                            <li><i class="fas fa-check"></i> Расширенная безопасность</li>
+                        </ul>
+                        <a href="/contact" class="btn btn-outline pricing-btn">Связаться с нами</a>
+                    </div>
+                </div>
+
+                <div class="pricing-faq">
+                    <h2 class="section-title">Часто задаваемые вопросы</h2>
+                    <div class="faq-grid">
+                        <div class="faq-item">
+                            <h4>Можно ли изменить тариф позже?</h4>
+                            <p>Да, вы можете изменить тариф в любой момент. Изменения вступят в силу в следующем расчетном периоде.</p>
+                        </div>
+                        <div class="faq-item">
+                            <h4>Есть ли пробный период?</h4>
+                            <p>Да, все платные тарифы имеют 14-дневный пробный период без необходимости указывать данные карты.</p>
+                        </div>
+                        <div class="faq-item">
+                            <h4>Что происходит с данными при отмене?</h4>
+                            <p>Ваши данные сохраняются в течение 30 дней после отмены подписки. Вы можете экспортировать их в любой момент.</p>
+                        </div>
+                        <div class="faq-item">
+                            <h4>Есть ли скидки для студентов?</h4>
+                            <p>Да, студенты могут получить скидку 50% на Профессиональный тариф. Свяжитесь с нами для получения промокода.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="cta-section">
+            <div class="container">
+                <h2>Готовы начать?</h2>
+                <p>Выберите план и начните контролировать свои финансы уже сегодня</p>
+                <a href="/register" class="cta-button">
+                    <i class="fas fa-rocket"></i> Начать бесплатно
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Expense Tracker</h3>
+                    <p>Простой и эффективный способ управлять вашими финансами</p>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Продукт</h4>
+                    <ul>
+                        <li><a href="/features">Возможности</a></li>
+                        <li><a href="/pricing">Тарифы</a></li>
+                        <li><a href="/api">API</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Поддержка</h4>
+                    <ul>
+                        <li><a href="/help">Помощь</a></li>
+                        <li><a href="/docs">Документация</a></li>
+                        <li><a href="/contact">Контакты</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Контакты</h4>
+                    <p><i class="fas fa-envelope"></i> info@expensetracker.com</p>
+                    <p><i class="fas fa-phone"></i> +7 (999) 123-45-67</p>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2024 Expense Tracker. Все права защищены.</p>
+            </div>
+        </div>
+    </footer>
+</div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
+

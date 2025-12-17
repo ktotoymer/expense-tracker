@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Контакты - Expense Tracker</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="app-container">
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <a href="/" class="logo">
+                    <i class="fas fa-chart-pie"></i>
+                    Expense Tracker
+                </a>
+                <ul class="nav-links">
+                    <li><a href="/"><i class="fas fa-home"></i> Главная</a></li>
+                    <li><a href="/features"><i class="fas fa-star"></i> Возможности</a></li>
+                    <li><a href="/about"><i class="fas fa-info-circle"></i> О проекте</a></li>
+                    <li><a href="/pricing"><i class="fas fa-tag"></i> Тарифы</a></li>
+                    <li><a href="/contact" class="active"><i class="fas fa-envelope"></i> Контакты</a></li>
+
+                    <div class="auth-buttons">
+                        <a href="/login" class="btn btn-outline">
+                            <i class="fas fa-sign-in-alt"></i> Вход
+                        </a>
+                        <a href="/register" class="btn btn-primary">
+                            <i class="fas fa-user-plus"></i> Регистрация
+                        </a>
+                    </div>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="container">
+                <h1>Свяжитесь с нами</h1>
+                <p class="subtitle">Мы всегда рады помочь и ответить на ваши вопросы</p>
+            </div>
+        </section>
+
+        <!-- Contact Section -->
+        <section class="features">
+            <div class="container">
+                <div class="contact-wrapper">
+                    <div class="contact-info">
+                        <h2 class="section-title">Контактная информация</h2>
+                        <div class="contact-cards">
+                            <div class="contact-card">
+                                <div class="contact-icon">
+                                    <i class="fas fa-envelope"></i>
+                                </div>
+                                <h3>Email</h3>
+                                <p>info@expensetracker.com</p>
+                                <p>support@expensetracker.com</p>
+                            </div>
+
+                            <div class="contact-card">
+                                <div class="contact-icon">
+                                    <i class="fas fa-phone"></i>
+                                </div>
+                                <h3>Телефон</h3>
+                                <p>+7 (999) 123-45-67</p>
+                                <p>Пн-Пт: 9:00 - 18:00 МСК</p>
+                            </div>
+
+                            <div class="contact-card">
+                                <div class="contact-icon">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                </div>
+                                <h3>Адрес</h3>
+                                <p>Москва, Россия</p>
+                                <p>ул. Примерная, д. 1</p>
+                            </div>
+
+                            <div class="contact-card">
+                                <div class="contact-icon">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <h3>Время работы</h3>
+                                <p>Понедельник - Пятница</p>
+                                <p>9:00 - 18:00 МСК</p>
+                            </div>
+                        </div>
+
+                        <div class="social-media">
+                            <h3>Мы в социальных сетях</h3>
+                            <div class="social-links">
+                                <a href="#" class="social-link">
+                                    <i class="fab fa-vk"></i>
+                                </a>
+                                <a href="#" class="social-link">
+                                    <i class="fab fa-telegram"></i>
+                                </a>
+                                <a href="#" class="social-link">
+                                    <i class="fab fa-github"></i>
+                                </a>
+                                <a href="#" class="social-link">
+                                    <i class="fab fa-twitter"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="contact-form-wrapper">
+                        <h2 class="section-title">Отправить сообщение</h2>
+                        
+                        <div th:if="${success}" class="alert alert-success" style="background-color: #d4edda; color: #155724; padding: 12px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #c3e6cb;">
+                            <i class="fas fa-check-circle"></i> <span th:text="${success}"></span>
+                        </div>
+                        
+                        <form class="contact-form" method="post" action="/contact" th:action="@{/contact}">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                            
+                            <div class="form-group">
+                                <label for="name">Ваше имя</label>
+                                <input type="text" id="name" name="name" placeholder="Введите ваше имя" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="email">Email</label>
+                                <input type="email" id="email" name="email" placeholder="your@email.com" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="subject">Тема</label>
+                                <input type="text" id="subject" name="subject" placeholder="Тема сообщения" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="message">Сообщение</label>
+                                <textarea id="message" name="message" rows="6" placeholder="Ваше сообщение..." required></textarea>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> Отправить сообщение
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Expense Tracker</h3>
+                    <p>Простой и эффективный способ управлять вашими финансами</p>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Продукт</h4>
+                    <ul>
+                        <li><a href="/features">Возможности</a></li>
+                        <li><a href="/pricing">Тарифы</a></li>
+                        <li><a href="/api">API</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Поддержка</h4>
+                    <ul>
+                        <li><a href="/help">Помощь</a></li>
+                        <li><a href="/docs">Документация</a></li>
+                        <li><a href="/contact">Контакты</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Контакты</h4>
+                    <p><i class="fas fa-envelope"></i> info@expensetracker.com</p>
+                    <p><i class="fas fa-phone"></i> +7 (999) 123-45-67</p>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2024 Expense Tracker. Все права защищены.</p>
+            </div>
+        </div>
+    </footer>
+</div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
+

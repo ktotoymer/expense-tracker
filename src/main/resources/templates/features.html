@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Возможности - Expense Tracker</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="app-container">
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <a href="/" class="logo">
+                    <i class="fas fa-chart-pie"></i>
+                    Expense Tracker
+                </a>
+                <ul class="nav-links">
+                    <li><a href="/"><i class="fas fa-home"></i> Главная</a></li>
+                    <li><a href="/features" class="active"><i class="fas fa-star"></i> Возможности</a></li>
+                    <li><a href="/about"><i class="fas fa-info-circle"></i> О проекте</a></li>
+                    <li><a href="/pricing"><i class="fas fa-tag"></i> Тарифы</a></li>
+                    <li><a href="/contact"><i class="fas fa-envelope"></i> Контакты</a></li>
+
+                    <div class="auth-buttons">
+                        <a href="/login" class="btn btn-outline">
+                            <i class="fas fa-sign-in-alt"></i> Вход
+                        </a>
+                        <a href="/register" class="btn btn-primary">
+                            <i class="fas fa-user-plus"></i> Регистрация
+                        </a>
+                    </div>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="container">
+                <h1>Возможности Expense Tracker</h1>
+                <p class="subtitle">Все инструменты для эффективного управления финансами в одном месте</p>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="features">
+            <div class="container">
+                <h2 class="section-title">Основные возможности</h2>
+                
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                        <h3>Учет доходов и расходов</h3>
+                        <p>Легко добавляйте и отслеживайте все ваши финансовые операции. Категоризируйте транзакции для лучшего понимания ваших расходов.</p>
+                        <ul class="feature-list">
+                            <li><i class="fas fa-check"></i> Быстрое добавление транзакций</li>
+                            <li><i class="fas fa-check"></i> Категории и теги</li>
+                            <li><i class="fas fa-check"></i> История всех операций</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h3>Детальная аналитика</h3>
+                        <p>Интерактивные графики и отчеты, которые помогут понять ваши финансовые привычки и найти возможности для экономии.</p>
+                        <ul class="feature-list">
+                            <li><i class="fas fa-check"></i> Визуализация расходов</li>
+                            <li><i class="fas fa-check"></i> Статистика по категориям</li>
+                            <li><i class="fas fa-check"></i> Тренды и прогнозы</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-piggy-bank"></i>
+                        </div>
+                        <h3>Управление бюджетами</h3>
+                        <p>Создавайте бюджеты для разных категорий и отслеживайте их выполнение. Получайте уведомления при приближении к лимитам.</p>
+                        <ul class="feature-list">
+                            <li><i class="fas fa-check"></i> Гибкие бюджеты</li>
+                            <li><i class="fas fa-check"></i> Отслеживание прогресса</li>
+                            <li><i class="fas fa-check"></i> Уведомления о лимитах</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-mobile-alt"></i>
+                        </div>
+                        <h3>Доступ везде</h3>
+                        <p>Работайте с любого устройства - компьютера, планшета или смартфона. Ваши данные синхронизируются в реальном времени.</p>
+                        <ul class="feature-list">
+                            <li><i class="fas fa-check"></i> Адаптивный дизайн</li>
+                            <li><i class="fas fa-check"></i> Облачная синхронизация</li>
+                            <li><i class="fas fa-check"></i> Офлайн режим</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <h3>Безопасность</h3>
+                        <p>Ваши данные защищены современными методами шифрования. Мы серьезно относимся к конфиденциальности.</p>
+                        <ul class="feature-list">
+                            <li><i class="fas fa-check"></i> Шифрование данных</li>
+                            <li><i class="fas fa-check"></i> Безопасное хранение</li>
+                            <li><i class="fas fa-check"></i> Регулярные резервные копии</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <h3>Умные уведомления</h3>
+                        <p>Получайте оповещения о важных событиях: приближение к лимитам бюджета, крупные расходы, напоминания о платежах.</p>
+                        <ul class="feature-list">
+                            <li><i class="fas fa-check"></i> Настраиваемые уведомления</li>
+                            <li><i class="fas fa-check"></i> Email и push-уведомления</li>
+                            <li><i class="fas fa-check"></i> Напоминания о платежах</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-file-export"></i>
+                        </div>
+                        <h3>Экспорт данных</h3>
+                        <p>Выгружайте отчеты в различных форматах для дальнейшего анализа или для бухгалтерского учета.</p>
+                        <ul class="feature-list">
+                            <li><i class="fas fa-check"></i> Экспорт в Excel</li>
+                            <li><i class="fas fa-check"></i> Экспорт в PDF</li>
+                            <li><i class="fas fa-check"></i> Экспорт в CSV</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h3>Совместный доступ</h3>
+                        <p>Делитесь бюджетами с семьей или коллегами для совместного контроля финансов.</p>
+                        <ul class="feature-list">
+                            <li><i class="fas fa-check"></i> Семейные бюджеты</li>
+                            <li><i class="fas fa-check"></i> Командная работа</li>
+                            <li><i class="fas fa-check"></i> Управление правами доступа</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <h3>Мощный поиск</h3>
+                        <p>Быстро находите нужные транзакции с помощью расширенного поиска по различным параметрам.</p>
+                        <ul class="feature-list">
+                            <li><i class="fas fa-check"></i> Поиск по категориям</li>
+                            <li><i class="fas fa-check"></i> Фильтры по дате</li>
+                            <li><i class="fas fa-check"></i> Поиск по сумме</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="cta-section">
+            <div class="container">
+                <h2>Готовы начать?</h2>
+                <p>Присоединяйтесь к тысячам пользователей, которые уже контролируют свои финансы</p>
+                <a href="/register" class="cta-button">
+                    <i class="fas fa-rocket"></i> Начать бесплатно
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Expense Tracker</h3>
+                    <p>Простой и эффективный способ управлять вашими финансами</p>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Продукт</h4>
+                    <ul>
+                        <li><a href="/features">Возможности</a></li>
+                        <li><a href="/pricing">Тарифы</a></li>
+                        <li><a href="/api">API</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Поддержка</h4>
+                    <ul>
+                        <li><a href="/help">Помощь</a></li>
+                        <li><a href="/docs">Документация</a></li>
+                        <li><a href="/contact">Контакты</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Контакты</h4>
+                    <p><i class="fas fa-envelope"></i> info@expensetracker.com</p>
+                    <p><i class="fas fa-phone"></i> +7 (999) 123-45-67</p>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2024 Expense Tracker. Все права защищены.</p>
+            </div>
+        </div>
+    </footer>
+</div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
+

@@ -3,66 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${title}">Expense Tracker</title>
+    <title>Expense Tracker - Управление финансами</title>
     <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-<header>
-    <div class="container">
-        <nav class="navbar">
-            <a href="/" class="logo">💰 Expense Tracker</a>
-            <ul class="nav-links">
-                <li><a href="/">Главная</a></li>
-                <li><a href="/features">Возможности</a></li>
-                <li><a href="/about">О проекте</a></li>
-                <li><a href="/login">Вход</a></li>
-                <li><a href="/register">Регистрация</a></li>
-            </ul>
-        </nav>
-    </div>
-</header>
+<div class="app-container">
+    <!-- Header -->
+    <div th:replace="~{fragments/header :: header}"></div>
 
-<main>
-    <section class="hero">
-        <div class="container">
-            <h1 th:text="${welcomeMessage}">Добро пожаловать в Expense Tracker!</h1>
-            <p>Простое и удобное приложение для контроля ваших расходов. Начните управлять своими финансами уже сегодня!</p>
-            <a href="#" class="cta-button">Начать использовать</a>
-        </div>
-    </section>
+    <!-- Main Content -->
+    <main>
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="container">
+                <div class="hero-content">
+                    <h1 class="fade-in">Управляйте финансами с умом</h1>
+                    <p class="subtitle">Мощный инструмент для контроля расходов, бюджетирования и финансового планирования</p>
 
-    <section class="features">
-        <div class="container">
-            <h2 class="section-title">Наши возможности</h2>
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">📊</div>
-                    <h3>Аналитика расходов</h3>
-                    <p>Наглядные графики и отчеты по вашим тратам</p>
-                </div>
+                    <div class="hero-stats">
+                        <div class="stat">
+                            <div class="stat-number">10K+</div>
+                            <div class="stat-label">Пользователей</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-number">₽50M+</div>
+                            <div class="stat-label">Управляемых средств</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-number">99%</div>
+                            <div class="stat-label">Довольных клиентов</div>
+                        </div>
+                    </div>
 
-                <div class="feature-card">
-                    <div class="feature-icon">📱</div>
-                    <h3>Доступ с любого устройства</h3>
-                    <p>Работает на компьютере, планшете и телефоне</p>
-                </div>
-
-                <div class="feature-card">
-                    <div class="feature-icon">🔒</div>
-                    <h3>Безопасность данных</h3>
-                    <p>Ваши финансовые данные защищены</p>
+                    <div class="hero-actions">
+                        <a href="/register" class="cta-button">
+                            <i class="fas fa-rocket"></i> Начать бесплатно
+                        </a>
+                        <a href="#features" class="btn btn-outline-light">
+                            <i class="fas fa-play-circle"></i> Смотреть демо
+                        </a>
+                    </div>
                 </div>
             </div>
-        </div>
-    </section>
-</main>
+        </section>
 
-<footer>
-    <div class="container">
-        <p>© 2024 Expense Tracker. Все права защищены.</p>
-        <p>Контакт: info@expensetracker.com</p>
-    </div>
-</footer>
+        <!-- Features Section -->
+        <section id="features" class="features">
+            <div class="container">
+                <h2 class="section-title">Почему выбирают нас?</h2>
+                <p class="section-subtitle">Все необходимые инструменты для эффективного управления финансами</p>
+
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h3>Детальная аналитика</h3>
+                        <p>Интерактивные графики и отчеты, которые помогут понять ваши финансовые привычки</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-mobile-alt"></i>
+                        </div>
+                        <h3>Доступ везде</h3>
+                        <p>Работайте с любого устройства - компьютера, планшета или смартфона</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <h3>Безопасность</h3>
+                        <p>Ваши данные защищены современными методами шифрования</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <h3>Уведомления</h3>
+                        <p>Получайте оповещения о приближении к лимитам бюджета</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-file-export"></i>
+                        </div>
+                        <h3>Экспорт данных</h3>
+                        <p>Выгружайте отчеты в Excel, PDF или CSV для дальнейшего анализа</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h3>Совместный доступ</h3>
+                        <p>Делитесь бюджетами с семьей или коллегами для совместного контроля</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Testimonials -->
+        <section class="testimonials">
+            <div class="container">
+                <h2 class="testimonials-title">Отзывы пользователей</h2>
+                <div class="testimonials-content">
+                    <div class="testimonial">
+                        <div class="testimonial-quote">
+                            "Expense Tracker помог мне сэкономить 30% от доходов за первый месяц использования!"
+                        </div>
+                        <div class="testimonial-author">
+                            <div class="author-avatar">АИ</div>
+                            <div class="author-info">
+                                <div class="author-name">Анна Иванова</div>
+                                <div class="author-title">Фрилансер</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="cta-section">
+            <div class="container">
+                <h2 class="cta-title">Начните контролировать свои финансы уже сегодня!</h2>
+                <p class="cta-subtitle">Присоединяйтесь к тысячам пользователей, которые уже экономят с нами</p>
+                <a href="/register" class="cta-button">
+                    <i class="fas fa-user-plus"></i> Создать аккаунт бесплатно
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</div>
 
 <script src="/js/app.js"></script>
 </body>

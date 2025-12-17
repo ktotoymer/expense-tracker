@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>О проекте - Expense Tracker</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="app-container">
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <a href="/" class="logo">
+                    <i class="fas fa-chart-pie"></i>
+                    Expense Tracker
+                </a>
+                <ul class="nav-links">
+                    <li><a href="/"><i class="fas fa-home"></i> Главная</a></li>
+                    <li><a href="/features"><i class="fas fa-star"></i> Возможности</a></li>
+                    <li><a href="/about" class="active"><i class="fas fa-info-circle"></i> О проекте</a></li>
+                    <li><a href="/pricing"><i class="fas fa-tag"></i> Тарифы</a></li>
+                    <li><a href="/contact"><i class="fas fa-envelope"></i> Контакты</a></li>
+
+                    <div class="auth-buttons">
+                        <a href="/login" class="btn btn-outline">
+                            <i class="fas fa-sign-in-alt"></i> Вход
+                        </a>
+                        <a href="/register" class="btn btn-primary">
+                            <i class="fas fa-user-plus"></i> Регистрация
+                        </a>
+                    </div>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="container">
+                <h1>О проекте Expense Tracker</h1>
+                <p class="subtitle">Узнайте больше о нашей миссии и команде</p>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section class="features">
+            <div class="container">
+                <div class="about-content">
+                    <div class="about-section">
+                        <h2 class="section-title">Наша миссия</h2>
+                        <p class="about-text">
+                            Expense Tracker был создан с целью помочь людям лучше понимать и контролировать свои финансы. 
+                            Мы верим, что каждый должен иметь простые и доступные инструменты для управления личным бюджетом.
+                        </p>
+                        <p class="about-text">
+                            Наша платформа объединяет в себе удобство использования, мощную аналитику и современные технологии, 
+                            чтобы сделать управление финансами максимально простым и эффективным.
+                        </p>
+                    </div>
+
+                    <div class="about-section">
+                        <h2 class="section-title">Что мы предлагаем</h2>
+                        <div class="features-grid">
+                            <div class="feature-card">
+                                <div class="feature-icon">
+                                    <i class="fas fa-heart"></i>
+                                </div>
+                                <h3>Простота</h3>
+                                <p>Интуитивно понятный интерфейс, который не требует специальных знаний</p>
+                            </div>
+
+                            <div class="feature-card">
+                                <div class="feature-icon">
+                                    <i class="fas fa-lock"></i>
+                                </div>
+                                <h3>Безопасность</h3>
+                                <p>Ваши финансовые данные защищены современными методами шифрования</p>
+                            </div>
+
+                            <div class="feature-card">
+                                <div class="feature-icon">
+                                    <i class="fas fa-rocket"></i>
+                                </div>
+                                <h3>Инновации</h3>
+                                <p>Постоянное развитие и добавление новых функций на основе обратной связи</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="about-section">
+                        <h2 class="section-title">Наша история</h2>
+                        <p class="about-text">
+                            Expense Tracker был запущен в 2024 году командой энтузиастов, которые столкнулись с проблемой 
+                            управления личными финансами. Мы поняли, что существующие решения либо слишком сложные, 
+                            либо недостаточно функциональные.
+                        </p>
+                        <p class="about-text">
+                            С тех пор мы работаем над созданием идеального инструмента для управления финансами, 
+                            который будет полезен как для начинающих, так и для опытных пользователей.
+                        </p>
+                    </div>
+
+                    <div class="about-section">
+                        <h2 class="section-title">Статистика</h2>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-number">10,000+</div>
+                                <div class="stat-label">Активных пользователей</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">₽50M+</div>
+                                <div class="stat-label">Управляемых средств</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">99%</div>
+                                <div class="stat-label">Довольных клиентов</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">24/7</div>
+                                <div class="stat-label">Поддержка</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="cta-section">
+            <div class="container">
+                <h2>Присоединяйтесь к нам!</h2>
+                <p>Начните контролировать свои финансы уже сегодня</p>
+                <a href="/register" class="cta-button">
+                    <i class="fas fa-user-plus"></i> Создать аккаунт бесплатно
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Expense Tracker</h3>
+                    <p>Простой и эффективный способ управлять вашими финансами</p>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Продукт</h4>
+                    <ul>
+                        <li><a href="/features">Возможности</a></li>
+                        <li><a href="/pricing">Тарифы</a></li>
+                        <li><a href="/api">API</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Поддержка</h4>
+                    <ul>
+                        <li><a href="/help">Помощь</a></li>
+                        <li><a href="/docs">Документация</a></li>
+                        <li><a href="/contact">Контакты</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Контакты</h4>
+                    <p><i class="fas fa-envelope"></i> info@expensetracker.com</p>
+                    <p><i class="fas fa-phone"></i> +7 (999) 123-45-67</p>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2024 Expense Tracker. Все права защищены.</p>
+            </div>
+        </div>
+    </footer>
+</div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
+

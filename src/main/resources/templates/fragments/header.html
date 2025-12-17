@@ -1,0 +1,26 @@
+<header th:fragment="header">
+    <div class="container">
+        <nav class="navbar">
+            <a href="/" class="logo">
+                <i class="fas fa-chart-pie"></i>
+                Expense Tracker
+            </a>
+            <ul class="nav-links">
+                <li><a href="/" class="active"><i class="fas fa-home"></i> <span>Главная</span></a></li>
+                <li><a href="/features"><i class="fas fa-star"></i> <span>Возможности</span></a></li>
+                <li><a href="/about"><i class="fas fa-info-circle"></i> <span>О проекте</span></a></li>
+                <li><a href="/pricing"><i class="fas fa-tag"></i> <span>Тарифы</span></a></li>
+                <li><a href="/contact"><i class="fas fa-envelope"></i> <span>Контакты</span></a></li>
+
+                <div class="auth-buttons">
+                    <a href="/login" class="btn btn-outline">
+                        <i class="fas fa-sign-in-alt"></i> Вход
+                    </a>
+                    <a href="/register" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i> Регистрация
+                    </a>
+                </div>
+            </ul>
+        </nav>
+    </div>
+</header>

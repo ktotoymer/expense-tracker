@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Админ-панель - Expense Tracker</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="dashboard-container">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="user-info">
+        <div class="user-avatar" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+          <i class="fas fa-user-shield"></i>
+        </div>
+        <div class="user-details">
+          <h3 th:text="${user?.firstName} + ' ' + ${user?.lastName}">Администратор</h3>
+          <p class="user-role">
+            <i class="fas fa-user-shield"></i>
+            <span>Администратор</span>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-menu">
+      <ul>
+        <li>
+          <a href="/admin/dashboard" class="active">
+            <i class="fas fa-tachometer-alt"></i>
+            <span>Панель управления</span>
+          </a>
+        </li>
+        <li>
+          <a href="/admin/users">
+            <i class="fas fa-users"></i>
+            <span>Пользователи</span>
+          </a>
+        </li>
+        <li>
+          <a href="/admin/transactions">
+            <i class="fas fa-exchange-alt"></i>
+            <span>Все транзакции</span>
+          </a>
+        </li>
+        <li>
+          <a href="/admin/reports">
+            <i class="fas fa-chart-bar"></i>
+            <span>Отчеты</span>
+          </a>
+        </li>
+        <li>
+          <a href="/user/dashboard">
+            <i class="fas fa-user"></i>
+            <span>Личный кабинет</span>
+          </a>
+        </li>
+        <li>
+          <a href="/user/settings">
+            <i class="fas fa-cog"></i>
+            <span>Настройки</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="sidebar-footer">
+      <a th:href="@{/logout}" class="logout-btn">
+        <i class="fas fa-sign-out-alt"></i>
+        <span>Выйти</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <header class="content-header">
+      <div class="header-left">
+        <h1>Админ-панель</h1>
+        <p class="welcome-message">Добро пожаловать, <span th:text="${user?.firstName}">Администратор</span>!</p>
+      </div>
+      <div class="header-right">
+        <div class="date-display">
+          <i class="fas fa-calendar-alt"></i>
+          <span th:text="${#temporals.format(#temporals.createToday(), 'dd MMMM yyyy')}">01 января 2024</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-info">
+          <h3>Всего пользователей</h3>
+          <p class="stat-amount" th:text="${totalUsers}">0</p>
+          <p class="stat-change">
+            <i class="fas fa-user-plus"></i>
+            <span>Зарегистрировано</span>
+          </p>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon income">
+          <i class="fas fa-arrow-up"></i>
+        </div>
+        <div class="stat-info">
+          <h3>Общий доход</h3>
+          <p class="stat-amount" th:text="'₽' + ${#numbers.formatDecimal(totalIncome ?: 0, 0, 'COMMA', 2, 'POINT')}">₽0</p>
+          <p class="stat-change positive">
+            <i class="fas fa-chart-line"></i>
+            <span>За текущий месяц</span>
+          </p>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon expense">
+          <i class="fas fa-arrow-down"></i>
+        </div>
+        <div class="stat-info">
+          <h3>Общий расход</h3>
+          <p class="stat-amount" th:text="'₽' + ${#numbers.formatDecimal(totalExpense ?: 0, 0, 'COMMA', 2, 'POINT')}">₽0</p>
+          <p class="stat-change negative">
+            <i class="fas fa-chart-line"></i>
+            <span>За текущий месяц</span>
+          </p>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon budget">
+          <i class="fas fa-exchange-alt"></i>
+        </div>
+        <div class="stat-info">
+          <h3>Всего транзакций</h3>
+          <p class="stat-amount" th:text="${totalTransactions}">0</p>
+          <p class="stat-change">
+            <i class="fas fa-list"></i>
+            <span>В системе</span>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Users by Role -->
+    <div class="card" style="margin: 1rem 2rem;">
+      <div class="card-header">
+        <h3><i class="fas fa-user-tag"></i> Пользователи по ролям</h3>
+      </div>
+      <div style="padding: 1.5rem;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+          <div th:each="entry : ${usersByRole}" style="padding: 1rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea;">
+            <h4 style="margin: 0 0 0.5rem 0; color: #2c3e50;" th:text="${entry.key}">ROLE_USER</h4>
+            <p style="margin: 0; font-size: 1.5rem; font-weight: bold; color: #667eea;" th:text="${entry.value}">0</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card" style="margin: 1rem 2rem;">
+      <div class="card-header">
+        <h3><i class="fas fa-bolt"></i> Быстрые действия</h3>
+      </div>
+      <div style="padding: 1.5rem;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+          <a href="/admin/users" class="btn btn-primary" style="text-decoration: none; text-align: center;">
+            <i class="fas fa-users"></i> Управление пользователями
+          </a>
+          <a href="/admin/transactions" class="btn btn-outline" style="text-decoration: none; text-align: center;">
+            <i class="fas fa-exchange-alt"></i> Все транзакции
+          </a>
+          <a href="/admin/reports" class="btn btn-outline" style="text-decoration: none; text-align: center;">
+            <i class="fas fa-chart-bar"></i> Отчеты
+          </a>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
+

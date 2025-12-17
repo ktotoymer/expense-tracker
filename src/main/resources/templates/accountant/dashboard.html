@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Панель бухгалтера - Expense Tracker</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="dashboard-container">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="user-info">
+        <div class="user-avatar" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+          <i class="fas fa-calculator"></i>
+        </div>
+        <div class="user-details">
+          <h3 th:text="${user?.firstName} + ' ' + ${user?.lastName}">Бухгалтер</h3>
+          <p class="user-role">
+            <i class="fas fa-calculator"></i>
+            <span>Бухгалтер</span>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-menu">
+      <ul>
+        <li>
+          <a href="/accountant/dashboard" class="active">
+            <i class="fas fa-tachometer-alt"></i>
+            <span>Панель управления</span>
+          </a>
+        </li>
+        <li>
+          <a href="/accountant/transactions">
+            <i class="fas fa-exchange-alt"></i>
+            <span>Все транзакции</span>
+          </a>
+        </li>
+        <li>
+          <a href="/accountant/reports">
+            <i class="fas fa-chart-bar"></i>
+            <span>Отчеты</span>
+          </a>
+        </li>
+        <li>
+          <a href="/accountant/users">
+            <i class="fas fa-users"></i>
+            <span>Пользователи</span>
+          </a>
+        </li>
+        <li>
+          <a href="/user/dashboard">
+            <i class="fas fa-user"></i>
+            <span>Личный кабинет</span>
+          </a>
+        </li>
+        <li>
+          <a href="/user/settings">
+            <i class="fas fa-cog"></i>
+            <span>Настройки</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="sidebar-footer">
+      <a th:href="@{/logout}" class="logout-btn">
+        <i class="fas fa-sign-out-alt"></i>
+        <span>Выйти</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <header class="content-header">
+      <div class="header-left">
+        <h1>Панель бухгалтера</h1>
+        <p class="welcome-message">Добро пожаловать, <span th:text="${user?.firstName}">Бухгалтер</span>!</p>
+      </div>
+      <div class="header-right">
+        <div class="date-display">
+          <i class="fas fa-calendar-alt"></i>
+          <span th:text="${#temporals.format(#temporals.createToday(), 'dd MMMM yyyy')}">01 января 2024</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-info">
+          <h3>Всего пользователей</h3>
+          <p class="stat-amount" th:text="${totalUsers}">0</p>
+          <p class="stat-change">
+            <i class="fas fa-user-check"></i>
+            <span>В системе</span>
+          </p>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon income">
+          <i class="fas fa-arrow-up"></i>
+        </div>
+        <div class="stat-info">
+          <h3>Общий доход</h3>
+          <p class="stat-amount" th:text="'₽' + ${#numbers.formatDecimal(totalIncome ?: 0, 0, 'COMMA', 2, 'POINT')}">₽0</p>
+          <p class="stat-change positive">
+            <i class="fas fa-chart-line"></i>
+            <span>За текущий месяц</span>
+          </p>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon expense">
+          <i class="fas fa-arrow-down"></i>
+        </div>
+        <div class="stat-info">
+          <h3>Общий расход</h3>
+          <p class="stat-amount" th:text="'₽' + ${#numbers.formatDecimal(totalExpense ?: 0, 0, 'COMMA', 2, 'POINT')}">₽0</p>
+          <p class="stat-change negative">
+            <i class="fas fa-chart-line"></i>
+            <span>За текущий месяц</span>
+          </p>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon balance">
+          <i class="fas fa-balance-scale"></i>
+        </div>
+        <div class="stat-info">
+          <h3>Баланс</h3>
+          <p class="stat-amount" th:text="'₽' + ${#numbers.formatDecimal(balance ?: 0, 0, 'COMMA', 2, 'POINT')}">₽0</p>
+          <p class="stat-change" th:classappend="${balance > 0 ? 'positive' : 'negative'}">
+            <i class="fas" th:classappend="${balance > 0 ? 'fa-arrow-up' : 'fa-arrow-down'}"></i>
+            <span th:text="${balance > 0 ? 'Положительный' : 'Отрицательный'}">Стабильный</span>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Users Statistics -->
+    <div class="card" style="margin: 1rem 2rem;">
+      <div class="card-header">
+        <h3><i class="fas fa-chart-pie"></i> Статистика по пользователям</h3>
+      </div>
+      <div style="padding: 1.5rem;">
+        <div class="transactions-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Пользователь</th>
+                <th>Доходы</th>
+                <th>Расходы</th>
+                <th>Транзакций</th>
+                <th>Баланс</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="entry : ${userStats}">
+                <td th:text="${entry.value.name}">Иван Иванов</td>
+                <td class="income" th:text="'₽' + ${#numbers.formatDecimal(entry.value.income, 0, 'COMMA', 2, 'POINT')}">₽0</td>
+                <td class="expense" th:text="'₽' + ${#numbers.formatDecimal(entry.value.expense, 0, 'COMMA', 2, 'POINT')}">₽0</td>
+                <td th:text="${entry.value.transactionsCount}">0</td>
+                <td th:classappend="${entry.value.income - entry.value.expense > 0 ? 'income' : 'expense'}"
+                    th:text="'₽' + ${#numbers.formatDecimal(entry.value.income - entry.value.expense, 0, 'COMMA', 2, 'POINT')}">₽0</td>
+              </tr>
+              <tr th:unless="${userStats?.size() > 0}">
+                <td colspan="5" class="empty-state">
+                  <i class="fas fa-users"></i>
+                  <p>Нет данных</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card" style="margin: 1rem 2rem;">
+      <div class="card-header">
+        <h3><i class="fas fa-bolt"></i> Быстрые действия</h3>
+      </div>
+      <div style="padding: 1.5rem;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+          <a href="/accountant/transactions" class="btn btn-primary" style="text-decoration: none; text-align: center;">
+            <i class="fas fa-exchange-alt"></i> Все транзакции
+          </a>
+          <a href="/accountant/reports" class="btn btn-outline" style="text-decoration: none; text-align: center;">
+            <i class="fas fa-chart-bar"></i> Отчеты
+          </a>
+          <a href="/accountant/users" class="btn btn-outline" style="text-decoration: none; text-align: center;">
+            <i class="fas fa-users"></i> Пользователи
+          </a>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
+
