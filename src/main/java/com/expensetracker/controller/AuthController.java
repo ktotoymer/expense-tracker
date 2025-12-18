@@ -1,16 +1,8 @@
 package com.expensetracker.controller;
 
-import com.expensetracker.dto.RegisterDto;
-import com.expensetracker.entity.Category;
-import com.expensetracker.entity.Role;
-import com.expensetracker.entity.User;
-import com.expensetracker.repository.CategoryRepository;
-import com.expensetracker.repository.RoleRepository;
-import com.expensetracker.repository.UserRepository;
-import com.expensetracker.service.CaptchaService;
-import org.springframework.http.ResponseEntity;
+import java.util.Collections;
+
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -22,11 +14,17 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
-import jakarta.servlet.http.HttpServletRequest;
 
-import java.util.Collections;
-import java.util.Map;
+import com.expensetracker.dto.RegisterDto;
+import com.expensetracker.entity.Category;
+import com.expensetracker.entity.Role;
+import com.expensetracker.entity.User;
+import com.expensetracker.repository.CategoryRepository;
+import com.expensetracker.repository.RoleRepository;
+import com.expensetracker.repository.UserRepository;
+import com.expensetracker.service.CaptchaService;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 @Controller
 public class AuthController {
@@ -59,62 +57,40 @@ public class AuthController {
 
     @GetMapping("/register")
     public String registerPage(Model model) {
-        Map<String, String> captcha = captchaService.generateCaptcha();
-        model.addAttribute("captchaId", captcha.get("id"));
-        model.addAttribute("captchaQuestion", captcha.get("question"));
+        // Для Google reCAPTCHA ничего генерировать на бэкенде не нужно.
+        // Виджет сам подставит токен в поле g-recaptcha-response.
         return "register";
-    }
-
-    @GetMapping("/api/captcha")
-    @ResponseBody
-    public ResponseEntity<Map<String, String>> getCaptcha() {
-        Map<String, String> captcha = captchaService.generateCaptcha();
-        return ResponseEntity.ok(captcha);
     }
 
     @PostMapping("/register")
     public String register(RegisterDto registerDto, Model model, HttpServletRequest request) {
-        // Проверка капчи
-        if (!captchaService.validateCaptcha(registerDto.getCaptchaId(), registerDto.getCaptchaAnswer())) {
-            model.addAttribute("error", "Неверный ответ на капчу. Пожалуйста, попробуйте снова.");
-            Map<String, String> captcha = captchaService.generateCaptcha();
-            model.addAttribute("captchaId", captcha.get("id"));
-            model.addAttribute("captchaQuestion", captcha.get("question"));
+        // Проверка Google reCAPTCHA
+        String recaptchaResponse = request.getParameter("g-recaptcha-response");
+        if (!captchaService.verifyRecaptcha(recaptchaResponse)) {
+            model.addAttribute("error", "Подтвердите, что вы не робот.");
             return "register";
         }
 
         // Проверка паролей
         if (!registerDto.getPassword().equals(registerDto.getConfirmPassword())) {
             model.addAttribute("error", "Пароли не совпадают");
-            Map<String, String> captcha = captchaService.generateCaptcha();
-            model.addAttribute("captchaId", captcha.get("id"));
-            model.addAttribute("captchaQuestion", captcha.get("question"));
             return "register";
         }
 
         // Проверка условий использования
         if (registerDto.getTerms() == null || !registerDto.getTerms()) {
             model.addAttribute("error", "Необходимо принять условия использования");
-            Map<String, String> captcha = captchaService.generateCaptcha();
-            model.addAttribute("captchaId", captcha.get("id"));
-            model.addAttribute("captchaQuestion", captcha.get("question"));
             return "register";
         }
 
         // Проверка существования пользователя
         if (userRepository.existsByUsername(registerDto.getUsername())) {
             model.addAttribute("error", "Пользователь с таким логином уже существует");
-            Map<String, String> captcha = captchaService.generateCaptcha();
-            model.addAttribute("captchaId", captcha.get("id"));
-            model.addAttribute("captchaQuestion", captcha.get("question"));
             return "register";
         }
 
         if (userRepository.existsByEmail(registerDto.getEmail())) {
             model.addAttribute("error", "Пользователь с таким email уже существует");
-            Map<String, String> captcha = captchaService.generateCaptcha();
-            model.addAttribute("captchaId", captcha.get("id"));
-            model.addAttribute("captchaQuestion", captcha.get("question"));
             return "register";
         }
 
@@ -130,9 +106,6 @@ public class AuthController {
         // Проверка, что роль валидна (только USER или ACCOUNTANT)
         if (!roleName.equals("ROLE_USER") && !roleName.equals("ROLE_ACCOUNTANT")) {
             model.addAttribute("error", "Неверная роль. Выберите роль пользователя или бухгалтера.");
-            Map<String, String> captcha = captchaService.generateCaptcha();
-            model.addAttribute("captchaId", captcha.get("id"));
-            model.addAttribute("captchaQuestion", captcha.get("question"));
             return "register";
         }
         
@@ -195,9 +168,6 @@ public class AuthController {
             }
         } catch (Exception e) {
             model.addAttribute("error", "Ошибка при регистрации: " + e.getMessage());
-            Map<String, String> captcha = captchaService.generateCaptcha();
-            model.addAttribute("captchaId", captcha.get("id"));
-            model.addAttribute("captchaQuestion", captcha.get("question"));
             return "register";
         }
     }

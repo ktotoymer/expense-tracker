@@ -6,6 +6,7 @@
   <title>Регистрация - Expense Tracker</title>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body>
 <div class="form-container">
@@ -129,22 +130,12 @@
       </div>
 
       <div class="form-group captcha-group">
-        <label for="captcha">
+        <label>
           <i class="fas fa-shield-alt"></i> Проверка безопасности
         </label>
-        <div class="captcha-container">
-          <div class="captcha-question" id="captchaQuestion" th:text="${captchaQuestion}">5 + 3 = ?</div>
-          <button type="button" class="btn-refresh-captcha" id="refreshCaptcha" title="Обновить капчу">
-            <i class="fas fa-sync-alt"></i>
-          </button>
+        <div class="g-recaptcha"
+             th:attr="data-sitekey=${@environment.getProperty('recaptcha.site.key')}">
         </div>
-        <input type="hidden" id="captchaId" name="captchaId" th:value="${captchaId}">
-        <input type="text"
-               id="captchaAnswer"
-               name="captchaAnswer"
-               placeholder="Введите ответ"
-               required
-               maxlength="3">
         <div class="error" id="captchaError"></div>
       </div>
 
@@ -241,27 +232,11 @@
       });
   });
 
-  // Captcha refresh functionality
-  document.getElementById('refreshCaptcha')?.addEventListener('click', function() {
-      fetch('/api/captcha')
-          .then(response => response.json())
-          .then(data => {
-              document.getElementById('captchaId').value = data.id;
-              document.getElementById('captchaQuestion').textContent = data.question;
-              document.getElementById('captchaAnswer').value = '';
-              document.getElementById('captchaError').style.display = 'none';
-          })
-          .catch(error => {
-              console.error('Ошибка при обновлении капчи:', error);
-          });
-  });
-
   // Form validation
   document.getElementById('registerForm')?.addEventListener('submit', function(e) {
       const password = document.getElementById('password').value;
       const confirmPassword = document.getElementById('confirmPassword').value;
       const terms = document.getElementById('terms').checked;
-      const captchaAnswer = document.getElementById('captchaAnswer').value;
 
       let isValid = true;
 
@@ -275,13 +250,6 @@
           e.preventDefault();
           document.getElementById('termsError').textContent = 'Необходимо принять условия использования';
           document.getElementById('termsError').style.display = 'block';
-          isValid = false;
-      }
-
-      if (!captchaAnswer || captchaAnswer.trim() === '') {
-          e.preventDefault();
-          document.getElementById('captchaError').textContent = 'Пожалуйста, решите капчу';
-          document.getElementById('captchaError').style.display = 'block';
           isValid = false;
       }
 
