@@ -88,10 +88,13 @@
     </nav>
 
     <div class="sidebar-footer">
-      <a th:href="@{/logout}" class="logout-btn">
-        <i class="fas fa-sign-out-alt"></i>
-        <span>Выйти</span>
-      </a>
+      <form th:action="@{/logout}" method="post" style="margin: 0;">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <button type="submit" class="logout-btn" style="background: none; border: none; color: inherit; cursor: pointer; width: 100%; text-align: left; padding: 0.75rem 1rem; display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Выйти</span>
+        </button>
+      </form>
     </div>
   </aside>
 
@@ -382,6 +385,20 @@
             <p>Настройте оповещения о приближении к лимиту бюджета.</p>
           </div>
         </div>
+
+        <div class="tip-card ai-tip-card">
+          <div class="tip-icon">
+            <i class="fas fa-robot"></i>
+          </div>
+          <div class="tip-content">
+            <h4>ИИ‑анализ ваших трат</h4>
+            <p>Получите персональные рекомендации по оптимизации расходов за последний месяц.</p>
+            <button type="button" class="btn btn-primary" id="aiAnalyzeButton">
+              <i class="fas fa-magic"></i> Проанализировать траты
+            </button>
+            <div id="aiAnalysisResult" class="ai-analysis-result" style="margin-top: 0.75rem; font-size: 0.9rem; line-height: 1.5;"></div>
+          </div>
+        </div>
       </div>
     </div>
   </main>
@@ -472,12 +489,42 @@
     }
   }
 
-  // Set today's date by default
+  // Set today's date by default and init AI analysis button
   document.addEventListener('DOMContentLoaded', function() {
     const dateInput = document.getElementById('date');
     if (dateInput && !dateInput.value) {
       const today = new Date().toISOString().split('T')[0];
       dateInput.value = today;
+    }
+
+    const aiButton = document.getElementById('aiAnalyzeButton');
+    const aiResult = document.getElementById('aiAnalysisResult');
+    if (aiButton && aiResult) {
+      aiButton.addEventListener('click', function () {
+        aiButton.disabled = true;
+        aiButton.innerHTML = '<i class=\"fas fa-spinner fa-spin\"></i> Анализируем...';
+        aiResult.textContent = '';
+
+        fetch('/user/ai-analysis')
+          .then(function (response) {
+            if (!response.ok) {
+              throw new Error('Ошибка HTTP ' + response.status);
+            }
+            return response.json();
+          })
+          .then(function (data) {
+            const text = data && data.recommendations ? data.recommendations : 'Не удалось получить рекомендации.';
+            aiResult.textContent = text;
+          })
+          .catch(function (error) {
+            console.error('Ошибка при запросе ИИ‑анализа:', error);
+            aiResult.textContent = 'Произошла ошибка при запросе ИИ‑анализа. Попробуйте позже.';
+          })
+          .finally(function () {
+            aiButton.disabled = false;
+            aiButton.innerHTML = '<i class=\"fas fa-magic\"></i> Проанализировать траты';
+          });
+      });
     }
   });
 </script>

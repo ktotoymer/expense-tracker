@@ -1,18 +1,5 @@
 package com.expensetracker.controller;
 
-import com.expensetracker.dto.BudgetDto;
-import com.expensetracker.dto.TransactionDto;
-import com.expensetracker.entity.*;
-import com.expensetracker.repository.*;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import jakarta.servlet.http.HttpServletRequest;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -23,6 +10,32 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import com.expensetracker.dto.BudgetDto;
+import com.expensetracker.entity.Budget;
+import com.expensetracker.entity.Category;
+import com.expensetracker.entity.Transaction;
+import com.expensetracker.entity.User;
+import com.expensetracker.repository.BudgetRepository;
+import com.expensetracker.repository.CategoryRepository;
+import com.expensetracker.repository.TransactionRepository;
+import com.expensetracker.repository.UserRepository;
+import com.expensetracker.service.AiExpenseAnalysisService;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 @Controller
 @RequestMapping("/user")
 public class UserController {
@@ -32,17 +45,20 @@ public class UserController {
     private final CategoryRepository categoryRepository;
     private final BudgetRepository budgetRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AiExpenseAnalysisService aiExpenseAnalysisService;
 
     public UserController(UserRepository userRepository,
-                         TransactionRepository transactionRepository,
-                         CategoryRepository categoryRepository,
-                         BudgetRepository budgetRepository,
-                         PasswordEncoder passwordEncoder) {
+                          TransactionRepository transactionRepository,
+                          CategoryRepository categoryRepository,
+                          BudgetRepository budgetRepository,
+                          PasswordEncoder passwordEncoder,
+                          AiExpenseAnalysisService aiExpenseAnalysisService) {
         this.userRepository = userRepository;
         this.transactionRepository = transactionRepository;
         this.categoryRepository = categoryRepository;
         this.budgetRepository = budgetRepository;
         this.passwordEncoder = passwordEncoder;
+        this.aiExpenseAnalysisService = aiExpenseAnalysisService;
     }
 
     private User getCurrentUser() {
@@ -417,6 +433,16 @@ public class UserController {
         User user = getCurrentUser();
         model.addAttribute("user", user);
         return "user/help";
+    }
+
+    @GetMapping("/ai-analysis")
+    @ResponseBody
+    public Map<String, String> aiAnalysis() {
+        User user = getCurrentUser();
+        String text = aiExpenseAnalysisService.analyzeLastMonth(user);
+        Map<String, String> result = new HashMap<>();
+        result.put("recommendations", text);
+        return result;
     }
 
     // Вспомогательный класс для статистики категорий

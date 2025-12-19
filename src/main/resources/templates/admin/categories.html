@@ -13,14 +13,14 @@
   <aside class="sidebar">
     <div class="sidebar-header">
       <div class="user-info">
-        <div class="user-avatar">
-          <i class="fas fa-user"></i>
+        <div class="user-avatar" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+          <i class="fas fa-user-shield"></i>
         </div>
         <div class="user-details">
-          <h3 th:text="${user?.firstName} + ' ' + ${user?.lastName}">Пользователь</h3>
+          <h3 th:text="${user?.firstName} + ' ' + ${user?.lastName}">Администратор</h3>
           <p class="user-role">
-            <i class="fas fa-user-tag"></i>
-            <span th:text="${user?.roles?.get(0)?.name}">USER</span>
+            <i class="fas fa-user-shield"></i>
+            <span>Администратор</span>
           </p>
         </div>
       </div>
@@ -29,45 +29,33 @@
     <nav class="sidebar-menu">
       <ul>
         <li>
-          <a href="/user/dashboard">
+          <a href="/admin/dashboard">
             <i class="fas fa-tachometer-alt"></i>
             <span>Панель управления</span>
           </a>
         </li>
         <li>
-          <a href="/user/transactions">
+          <a href="/admin/users">
+            <i class="fas fa-users"></i>
+            <span>Пользователи</span>
+          </a>
+        </li>
+        <li>
+          <a href="/admin/transactions">
             <i class="fas fa-exchange-alt"></i>
-            <span>Транзакции</span>
+            <span>Все транзакции</span>
           </a>
         </li>
         <li>
-          <a href="/user/categories" class="active">
-            <i class="fas fa-tags"></i>
-            <span>Категории</span>
-          </a>
-        </li>
-        <li>
-          <a href="/user/budgets">
-            <i class="fas fa-wallet"></i>
-            <span>Бюджеты</span>
-          </a>
-        </li>
-        <li>
-          <a href="/user/reports">
+          <a href="/admin/reports">
             <i class="fas fa-chart-bar"></i>
             <span>Отчеты</span>
           </a>
         </li>
         <li>
-          <a href="/user/settings">
-            <i class="fas fa-cog"></i>
-            <span>Настройки</span>
-          </a>
-        </li>
-        <li>
-          <a href="/user/help">
-            <i class="fas fa-question-circle"></i>
-            <span>Помощь</span>
+          <a href="/admin/categories" class="active">
+            <i class="fas fa-tags"></i>
+            <span>Категории</span>
           </a>
         </li>
       </ul>
@@ -81,9 +69,6 @@
           <span>Выйти</span>
         </button>
       </form>
-        <i class="fas fa-sign-out-alt"></i>
-        <span>Выйти</span>
-      </a>
     </div>
   </aside>
 
@@ -91,8 +76,8 @@
   <main class="main-content">
     <header class="content-header">
       <div class="header-left">
-        <h1>Категории</h1>
-        <p class="welcome-message">Управление категориями для ваших транзакций</p>
+        <h1>Управление категориями</h1>
+        <p class="welcome-message">Управление категориями расходов для всех пользователей</p>
       </div>
       <div class="header-right">
         <button class="btn btn-primary" onclick="showAddCategoryModal()">
@@ -111,25 +96,26 @@
     </div>
 
     <!-- Categories Grid -->
-    <div class="categories-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.5rem; margin: 1rem 2rem;">
-      <div class="category-card" th:each="category : ${categories}" style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-        <div class="category-header" style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-          <div class="category-icon" th:style="'background-color: ' + ${category.color} + '; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem;'">
+    <div class="categories-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; margin: 1rem 2rem;">
+      <div class="category-card" th:each="category : ${categories}" style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; flex-direction: column; min-height: 220px;">
+        <div class="category-header" style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; flex: 1;">
+          <div class="category-icon" th:style="'background-color: ' + ${category.color} + '; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; flex-shrink: 0;'">
             <i class="fas fa-tag"></i>
           </div>
-          <div>
-            <h3 style="margin: 0; color: #2c3e50;" th:text="${category.name}">Категория</h3>
-            <p style="margin: 0.3rem 0 0 0; color: #7f8c8d; font-size: 0.9rem;" th:text="${category.description ?: 'Нет описания'}">Описание</p>
+          <div style="flex: 1; min-width: 0;">
+            <h3 style="margin: 0; color: #2c3e50; word-wrap: break-word;" th:text="${category.name}">Категория</h3>
+            <p style="margin: 0.3rem 0 0 0; color: #7f8c8d; font-size: 0.9rem; word-wrap: break-word; overflow-wrap: break-word;" th:text="${category.description ?: 'Нет описания'}">Описание</p>
+            <p style="margin: 0.3rem 0 0 0; color: #95a5a6; font-size: 0.85rem; word-wrap: break-word; overflow-wrap: break-word;" th:text="'Пользователь: ' + ${category.user.firstName} + ' ' + ${category.user.lastName}">Пользователь</p>
           </div>
         </div>
-        <div class="category-actions" style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-          <button class="btn btn-outline" style="flex: 1;" onclick="editCategory([[${category.id}]], '[[${category.name}]]', '[[${category.description}]]', '[[${category.color}]]')">
-            <i class="fas fa-edit"></i> Редактировать
+        <div class="category-actions" style="display: flex; gap: 0.5rem; margin-top: auto; width: 100%; box-sizing: border-box; align-items: stretch;">
+          <button class="btn btn-outline" style="flex: 1; min-width: 0; padding: 0.6rem 0.5rem; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center; gap: 0.3rem; height: 100%;" onclick="editCategory([[${category.id}]], '[[${category.name}]]', '[[${category.description}]]', '[[${category.color}]]', [[${category.user.id}]])">
+            <i class="fas fa-edit" style="flex-shrink: 0;"></i> <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Редактировать</span>
           </button>
-          <form th:action="@{/user/categories/{id}/delete(id=${category.id})}" method="post" style="flex: 1;">
+          <form th:action="@{/admin/categories/{id}/delete(id=${category.id})}" method="post" style="flex: 1; min-width: 0; display: flex; margin: 0;">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-            <button type="submit" class="btn btn-secondary" onclick="return confirm('Вы уверены, что хотите удалить эту категорию?');">
-              <i class="fas fa-trash"></i> Удалить
+            <button type="submit" class="btn btn-secondary" style="width: 100%; min-width: 0; padding: 0.6rem 0.5rem; font-size: 0.8rem; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 0.3rem; height: 100%;" onclick="return confirm('Вы уверены, что хотите удалить эту категорию?');">
+              <i class="fas fa-trash" style="flex-shrink: 0;"></i> <span>Удалить</span>
             </button>
           </form>
         </div>
@@ -137,7 +123,7 @@
 
       <div th:unless="${categories?.size() > 0}" class="empty-state" style="grid-column: 1 / -1; text-align: center; padding: 3rem; background: white; border-radius: 12px; border: 2px dashed #e1e5e9;">
         <i class="fas fa-tags" style="font-size: 3rem; color: #bdc3c7; margin-bottom: 1rem;"></i>
-        <p style="color: #95a5a6; margin-bottom: 1.5rem;">У вас пока нет категорий</p>
+        <p style="color: #95a5a6; margin-bottom: 1.5rem;">Категории не найдены</p>
         <button class="btn btn-primary" onclick="showAddCategoryModal()">
           <i class="fas fa-plus"></i> Добавить категорию
         </button>
@@ -156,7 +142,7 @@
       </button>
     </div>
     <div class="modal-body">
-      <form id="addCategoryForm" method="post" action="/user/categories/add" th:action="@{/user/categories/add}">
+      <form id="addCategoryForm" method="post" th:action="@{/admin/categories/add}">
         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
         <input type="hidden" id="categoryId" name="id">
         <div class="form-group">
@@ -171,11 +157,22 @@
           <label for="categoryColor">Цвет</label>
           <input type="color" id="categoryColor" name="color" value="#667eea">
         </div>
+        <div class="form-group">
+          <label for="categoryUserId">Пользователь *</label>
+          <select id="categoryUserId" name="userId" required>
+            <option value="">Выберите пользователя</option>
+            <option th:each="u : ${allUsers}" 
+                    th:value="${u.id}" 
+                    th:text="${u.firstName} + ' ' + ${u.lastName} + ' (' + ${u.username} + ')'">
+              Пользователь
+            </option>
+          </select>
+        </div>
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" onclick="closeAddCategoryModal()">
             Отмена
           </button>
-          <button type="submit" class="btn btn-primary">
+          <button type="submit" class="btn btn-primary" id="categorySubmitBtn">
             <i class="fas fa-plus"></i> Сохранить
           </button>
         </div>
@@ -189,17 +186,22 @@
   function showAddCategoryModal() {
     document.getElementById('categoryModalTitle').textContent = 'Добавить категорию';
     document.getElementById('categoryId').value = '';
+    document.getElementById('addCategoryForm').action = '/admin/categories/add';
+    document.getElementById('categorySubmitBtn').innerHTML = '<i class="fas fa-plus"></i> Сохранить';
     document.getElementById('addCategoryForm').reset();
     document.getElementById('categoryColor').value = '#667eea';
     document.getElementById('addCategoryModal').classList.add('active');
   }
 
-  function editCategory(id, name, description, color) {
+  function editCategory(id, name, description, color, userId) {
     document.getElementById('categoryModalTitle').textContent = 'Редактировать категорию';
     document.getElementById('categoryId').value = id;
+    document.getElementById('addCategoryForm').action = '/admin/categories/' + id + '/update';
+    document.getElementById('categorySubmitBtn').innerHTML = '<i class="fas fa-save"></i> Обновить';
     document.getElementById('categoryName').value = name;
     document.getElementById('categoryDescription').value = description || '';
     document.getElementById('categoryColor').value = color || '#667eea';
+    document.getElementById('categoryUserId').value = userId;
     document.getElementById('addCategoryModal').classList.add('active');
   }
 
@@ -217,4 +219,3 @@
 </script>
 </body>
 </html>
-

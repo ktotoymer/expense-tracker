@@ -1,7 +1,9 @@
 package com.expensetracker.controller;
 
+import com.expensetracker.entity.Category;
 import com.expensetracker.entity.Transaction;
 import com.expensetracker.entity.User;
+import com.expensetracker.repository.CategoryRepository;
 import com.expensetracker.repository.TransactionRepository;
 import com.expensetracker.repository.UserRepository;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -10,12 +12,14 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Controller
@@ -25,11 +29,14 @@ public class AccountantController {
 
     private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
+    private final CategoryRepository categoryRepository;
 
     public AccountantController(UserRepository userRepository,
-                               TransactionRepository transactionRepository) {
+                               TransactionRepository transactionRepository,
+                               CategoryRepository categoryRepository) {
         this.userRepository = userRepository;
         this.transactionRepository = transactionRepository;
+        this.categoryRepository = categoryRepository;
     }
 
     private User getCurrentUser() {
@@ -144,15 +151,115 @@ public class AccountantController {
                     .collect(Collectors.toList());
         }
 
+        // Получаем все категории для формы добавления/редактирования
+        List<Category> allCategories = categoryRepository.findAll();
+
         model.addAttribute("user", currentUser);
         model.addAttribute("transactions", transactions);
         model.addAttribute("allUsers", allUsers);
+        model.addAttribute("allCategories", allCategories);
         model.addAttribute("selectedUserId", userId);
         model.addAttribute("selectedType", type);
         model.addAttribute("selectedStartDate", startDate);
         model.addAttribute("selectedEndDate", endDate);
 
         return "accountant/transactions";
+    }
+
+    @PostMapping("/transactions/add")
+    public String addTransaction(@RequestParam BigDecimal amount,
+                                @RequestParam String type,
+                                @RequestParam(required = false) String description,
+                                @RequestParam LocalDate date,
+                                @RequestParam Long userId,
+                                @RequestParam(required = false) Long categoryId,
+                                RedirectAttributes redirectAttributes) {
+        try {
+            Optional<User> userOpt = userRepository.findById(userId);
+            if (userOpt.isEmpty()) {
+                redirectAttributes.addFlashAttribute("error", "Пользователь не найден!");
+                return "redirect:/accountant/transactions";
+            }
+
+            Transaction transaction = new Transaction();
+            transaction.setAmount(amount);
+            transaction.setType(Transaction.TransactionType.valueOf(type));
+            transaction.setDescription(description);
+            transaction.setDate(date != null ? date : LocalDate.now());
+            transaction.setUser(userOpt.get());
+
+            if (categoryId != null) {
+                Optional<Category> category = categoryRepository.findById(categoryId);
+                category.ifPresent(transaction::setCategory);
+            }
+
+            transactionRepository.save(transaction);
+            redirectAttributes.addFlashAttribute("success", "Транзакция успешно добавлена!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Ошибка при добавлении транзакции: " + e.getMessage());
+        }
+        return "redirect:/accountant/transactions";
+    }
+
+    @PostMapping("/transactions/{id}/update")
+    public String updateTransaction(@PathVariable Long id,
+                                   @RequestParam BigDecimal amount,
+                                   @RequestParam String type,
+                                   @RequestParam(required = false) String description,
+                                   @RequestParam LocalDate date,
+                                   @RequestParam Long userId,
+                                   @RequestParam(required = false) Long categoryId,
+                                   RedirectAttributes redirectAttributes) {
+        try {
+            Optional<Transaction> transactionOpt = transactionRepository.findById(id);
+            if (transactionOpt.isEmpty()) {
+                redirectAttributes.addFlashAttribute("error", "Транзакция не найдена!");
+                return "redirect:/accountant/transactions";
+            }
+
+            Optional<User> userOpt = userRepository.findById(userId);
+            if (userOpt.isEmpty()) {
+                redirectAttributes.addFlashAttribute("error", "Пользователь не найден!");
+                return "redirect:/accountant/transactions";
+            }
+
+            Transaction transaction = transactionOpt.get();
+            transaction.setAmount(amount);
+            transaction.setType(Transaction.TransactionType.valueOf(type));
+            transaction.setDescription(description);
+            transaction.setDate(date);
+            transaction.setUser(userOpt.get());
+
+            if (categoryId != null) {
+                Optional<Category> category = categoryRepository.findById(categoryId);
+                category.ifPresent(transaction::setCategory);
+            } else {
+                transaction.setCategory(null);
+            }
+
+            transactionRepository.save(transaction);
+            redirectAttributes.addFlashAttribute("success", "Транзакция обновлена!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Ошибка при обновлении транзакции: " + e.getMessage());
+        }
+        return "redirect:/accountant/transactions";
+    }
+
+    @PostMapping("/transactions/{id}/delete")
+    public String deleteTransaction(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        try {
+            Optional<Transaction> transaction = transactionRepository.findById(id);
+            if (transaction.isEmpty()) {
+                redirectAttributes.addFlashAttribute("error", "Транзакция не найдена!");
+                return "redirect:/accountant/transactions";
+            }
+
+            transactionRepository.deleteById(id);
+            redirectAttributes.addFlashAttribute("success", "Транзакция удалена!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Ошибка при удалении транзакции: " + e.getMessage());
+        }
+        return "redirect:/accountant/transactions";
     }
 
     @GetMapping("/reports")

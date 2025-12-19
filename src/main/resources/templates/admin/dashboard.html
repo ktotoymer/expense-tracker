@@ -53,25 +53,22 @@
           </a>
         </li>
         <li>
-          <a href="/user/dashboard">
-            <i class="fas fa-user"></i>
-            <span>Личный кабинет</span>
-          </a>
-        </li>
-        <li>
-          <a href="/user/settings">
-            <i class="fas fa-cog"></i>
-            <span>Настройки</span>
+          <a href="/admin/categories">
+            <i class="fas fa-tags"></i>
+            <span>Категории</span>
           </a>
         </li>
       </ul>
     </nav>
 
     <div class="sidebar-footer">
-      <a th:href="@{/logout}" class="logout-btn">
-        <i class="fas fa-sign-out-alt"></i>
-        <span>Выйти</span>
-      </a>
+      <form th:action="@{/logout}" method="post" style="margin: 0;">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <button type="submit" class="logout-btn" style="background: none; border: none; color: inherit; cursor: pointer; width: 100%; text-align: left; padding: 0.75rem 1rem; display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Выйти</span>
+        </button>
+      </form>
     </div>
   </aside>
 
@@ -157,7 +154,7 @@
       <div style="padding: 1.5rem;">
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
           <div th:each="entry : ${usersByRole}" style="padding: 1rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea;">
-            <h4 style="margin: 0 0 0.5rem 0; color: #2c3e50;" th:text="${entry.key}">ROLE_USER</h4>
+            <h4 style="margin: 0 0 0.5rem 0; color: #2c3e50;" th:text="${entry.key == 'ROLE_ADMIN' ? 'Администратор' : (entry.key == 'ROLE_ACCOUNTANT' ? 'Бухгалтер' : (entry.key == 'ROLE_USER' ? 'Пользователь' : entry.key))}">Пользователь</h4>
             <p style="margin: 0; font-size: 1.5rem; font-weight: bold; color: #667eea;" th:text="${entry.value}">0</p>
           </div>
         </div>

@@ -103,9 +103,9 @@ public class AuthController {
             roleName = roleNameInput;
         }
         
-        // Проверка, что роль валидна (только USER или ACCOUNTANT)
-        if (!roleName.equals("ROLE_USER") && !roleName.equals("ROLE_ACCOUNTANT")) {
-            model.addAttribute("error", "Неверная роль. Выберите роль пользователя или бухгалтера.");
+        // Проверка, что роль валидна (USER, ACCOUNTANT или ADMIN)
+        if (!roleName.equals("ROLE_USER") && !roleName.equals("ROLE_ACCOUNTANT") && !roleName.equals("ROLE_ADMIN")) {
+            model.addAttribute("error", "Неверная роль. Выберите роль пользователя, бухгалтера или администратора.");
             return "register";
         }
         
