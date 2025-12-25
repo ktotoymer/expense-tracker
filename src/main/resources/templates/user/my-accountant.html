@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мой бухгалтер - Expense Tracker</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="dashboard-container">
+  <!-- Sidebar -->
+  <div th:replace="~{user/fragments/sidebar :: sidebar(activePage='my-accountant')}"></div>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <header class="content-header">
+      <div class="header-left">
+        <h1>Мой бухгалтер</h1>
+        <p class="welcome-message">Рекомендации от вашего бухгалтера</p>
+      </div>
+    </header>
+
+    <div th:if="${!hasAccountant}" class="alert alert-info" style="margin: 1rem 2rem;">
+      <i class="fas fa-info-circle"></i>
+      <span>У вас пока нет назначенного бухгалтера. Найдите бухгалтера и отправьте ему запрос, чтобы получать профессиональные рекомендации по управлению финансами.</span>
+      <a href="/user/search-accountants" class="btn btn-primary" style="margin-left: 1rem; display: inline-block;">
+        <i class="fas fa-search"></i> Найти бухгалтера
+      </a>
+    </div>
+
+    <div th:if="${hasAccountant}" style="margin: 0 2rem 2rem 2rem;">
+      <!-- Accountant Info -->
+      <div class="card" style="margin-bottom: 2rem;">
+        <div class="card-header">
+          <h3><i class="fas fa-calculator"></i> Информация о бухгалтере</h3>
+        </div>
+        <div class="card-body">
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <div class="user-avatar" style="width: 60px; height: 60px; font-size: 1.5rem;">
+              <i class="fas fa-calculator"></i>
+            </div>
+            <div>
+              <h4 style="margin: 0;" th:text="${accountant.firstName} + ' ' + ${accountant.lastName}">Бухгалтер</h4>
+              <p style="margin: 0.25rem 0; color: #6c757d;" th:text="${accountant.email}">email@example.com</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recommendations List -->
+      <div class="card">
+        <div class="card-header">
+          <h3><i class="fas fa-comment-dots"></i> Рекомендации</h3>
+        </div>
+        <div class="card-body">
+          <div th:if="${recommendations?.isEmpty()}" class="empty-state">
+            <i class="fas fa-comment-slash"></i>
+            <p>Пока нет рекомендаций от вашего бухгалтера</p>
+          </div>
+          <div th:unless="${recommendations?.isEmpty()}">
+            <div th:each="recommendation : ${recommendations}" class="recommendation-item" style="background: #f8f9fa; padding: 1.5rem; margin-bottom: 1rem; border-radius: 8px; border-left: 4px solid #667eea;">
+              <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                <small style="color: #6c757d;">
+                  <i class="fas fa-clock"></i>
+                  <span th:text="${#temporals.format(recommendation.createdAt, 'dd.MM.yyyy HH:mm')}">01.01.2024 12:00</span>
+                </small>
+              </div>
+              <div style="white-space: pre-wrap; color: #2c3e50; line-height: 1.6;" th:text="${recommendation.message}">Текст рекомендации</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
+

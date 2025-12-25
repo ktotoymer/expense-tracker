@@ -1,12 +1,19 @@
 package com.expensetracker.controller;
 
-import com.expensetracker.entity.*;
+import com.expensetracker.entity.Category;
+import com.expensetracker.entity.Expense;
+import com.expensetracker.entity.Income;
+import com.expensetracker.entity.Role;
+import com.expensetracker.entity.User;
 import com.expensetracker.entity.Role;
 import com.expensetracker.entity.User;
 import com.expensetracker.repository.CategoryRepository;
+import com.expensetracker.repository.ExpenseRepository;
+import com.expensetracker.repository.IncomeRepository;
 import com.expensetracker.repository.RoleRepository;
-import com.expensetracker.repository.TransactionRepository;
 import com.expensetracker.repository.UserRepository;
+import com.expensetracker.service.StatisticsService;
+import com.expensetracker.dto.FinancialItem;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -28,20 +35,26 @@ public class AdminController {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
-    private final TransactionRepository transactionRepository;
+    private final IncomeRepository incomeRepository;
+    private final ExpenseRepository expenseRepository;
     private final CategoryRepository categoryRepository;
     private final PasswordEncoder passwordEncoder;
+    private final StatisticsService statisticsService;
 
     public AdminController(UserRepository userRepository,
                           RoleRepository roleRepository,
-                          TransactionRepository transactionRepository,
+                          IncomeRepository incomeRepository,
+                          ExpenseRepository expenseRepository,
                           CategoryRepository categoryRepository,
-                          PasswordEncoder passwordEncoder) {
+                          PasswordEncoder passwordEncoder,
+                          StatisticsService statisticsService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
-        this.transactionRepository = transactionRepository;
+        this.incomeRepository = incomeRepository;
+        this.expenseRepository = expenseRepository;
         this.categoryRepository = categoryRepository;
         this.passwordEncoder = passwordEncoder;
+        this.statisticsService = statisticsService;
     }
 
     private User getCurrentUser() {
@@ -55,20 +68,13 @@ public class AdminController {
     public String dashboard(Model model) {
         User currentUser = getCurrentUser();
         long totalUsers = userRepository.count();
-        long totalTransactions = transactionRepository.count();
 
         LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
         // Подсчет общей статистики через всех пользователей
-        BigDecimal totalIncome = BigDecimal.ZERO;
-        BigDecimal totalExpense = BigDecimal.ZERO;
-
         List<User> allUsers = userRepository.findAll();
-        for (User user : allUsers) {
-            BigDecimal userIncome = transactionRepository.sumIncomeByUserAndDateAfter(user, startOfMonth);
-            BigDecimal userExpense = transactionRepository.sumExpenseByUserAndDateAfter(user, startOfMonth);
-            if (userIncome != null) totalIncome = totalIncome.add(userIncome);
-            if (userExpense != null) totalExpense = totalExpense.add(userExpense);
-        }
+        StatisticsService.OverallStatistics overallStats = statisticsService.calculateOverallStatistics(allUsers, startOfMonth);
+        
+        long totalItems = overallStats.getTotalItems();
 
         // Статистика по пользователям
         Map<String, Long> usersByRole = allUsers.stream()
@@ -77,9 +83,9 @@ public class AdminController {
 
         model.addAttribute("user", currentUser);
         model.addAttribute("totalUsers", totalUsers);
-        model.addAttribute("totalTransactions", totalTransactions);
-        model.addAttribute("totalIncome", totalIncome);
-        model.addAttribute("totalExpense", totalExpense);
+        model.addAttribute("totalTransactions", totalItems);
+        model.addAttribute("totalIncome", overallStats.getTotalIncome());
+        model.addAttribute("totalExpense", overallStats.getTotalExpense());
         model.addAttribute("usersByRole", usersByRole);
 
         return "admin/dashboard";
@@ -108,13 +114,12 @@ public class AdminController {
 
         // Статистика пользователя
         LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
-        BigDecimal userIncome = transactionRepository.sumIncomeByUserAndDateAfter(targetUser.get(), startOfMonth);
-        BigDecimal userExpense = transactionRepository.sumExpenseByUserAndDateAfter(targetUser.get(), startOfMonth);
+        BigDecimal userIncome = statisticsService.calculateTotalIncome(targetUser.get(), startOfMonth);
+        BigDecimal userExpense = statisticsService.calculateTotalExpense(targetUser.get(), startOfMonth);
 
-        if (userIncome == null) userIncome = BigDecimal.ZERO;
-        if (userExpense == null) userExpense = BigDecimal.ZERO;
-
-        long userTransactionsCount = transactionRepository.findByUserOrderByDateDesc(targetUser.get()).size();
+        List<Income> userIncomes = incomeRepository.findByUserOrderByDateDesc(targetUser.get());
+        List<Expense> userExpenses = expenseRepository.findByUserOrderByDateDesc(targetUser.get());
+        long userTransactionsCount = userIncomes.size() + userExpenses.size();
 
         model.addAttribute("user", currentUser);
         model.addAttribute("targetUser", targetUser.get());
@@ -287,7 +292,7 @@ public class AdminController {
         return "redirect:/admin/categories";
     }
 
-    // Просмотр всех транзакций
+    // Просмотр всех транзакций (доходы и расходы)
     @GetMapping("/transactions")
     public String transactions(Model model,
                               @RequestParam(required = false) Long userId,
@@ -296,43 +301,57 @@ public class AdminController {
                               @RequestParam(required = false) String endDate) {
         User currentUser = getCurrentUser();
         List<User> allUsers = userRepository.findAll();
-        List<Transaction> transactions;
+        List<FinancialItem> items = new ArrayList<>();
 
+        // Определяем список пользователей для выборки
+        List<User> targetUsers;
         if (userId != null) {
             Optional<User> targetUser = userRepository.findById(userId);
-            if (targetUser.isPresent()) {
-                transactions = transactionRepository.findByUserOrderByDateDesc(targetUser.get());
-            } else {
-                transactions = transactionRepository.findAll();
-            }
+            targetUsers = targetUser.map(Collections::singletonList).orElse(allUsers);
         } else {
-            transactions = transactionRepository.findAll();
+            targetUsers = allUsers;
+        }
+
+        // Собираем все доходы и расходы
+        for (User user : targetUsers) {
+            List<Income> incomes = incomeRepository.findByUserOrderByDateDesc(user);
+            List<Expense> expenses = expenseRepository.findByUserOrderByDateDesc(user);
+            
+            for (Income income : incomes) {
+                items.add(new FinancialItem(income));
+            }
+            
+            for (Expense expense : expenses) {
+                items.add(new FinancialItem(expense));
+            }
         }
 
         // Фильтрация по типу
         if (type != null && !type.isEmpty()) {
-            Transaction.TransactionType transactionType = Transaction.TransactionType.valueOf(type);
-            transactions = transactions.stream()
-                    .filter(t -> t.getType() == transactionType)
+            items = items.stream()
+                    .filter(item -> item.getType().equals(type))
                     .collect(Collectors.toList());
         }
 
         // Фильтрация по датам
         if (startDate != null && !startDate.isEmpty()) {
             LocalDate start = LocalDate.parse(startDate);
-            transactions = transactions.stream()
-                    .filter(t -> !t.getDate().isBefore(start))
+            items = items.stream()
+                    .filter(item -> !item.getDate().isBefore(start))
                     .collect(Collectors.toList());
         }
         if (endDate != null && !endDate.isEmpty()) {
             LocalDate end = LocalDate.parse(endDate);
-            transactions = transactions.stream()
-                    .filter(t -> !t.getDate().isAfter(end))
+            items = items.stream()
+                    .filter(item -> !item.getDate().isAfter(end))
                     .collect(Collectors.toList());
         }
 
+        // Сортировка по дате (новые сначала)
+        items.sort((a, b) -> b.getDate().compareTo(a.getDate()));
+
         model.addAttribute("user", currentUser);
-        model.addAttribute("transactions", transactions);
+        model.addAttribute("items", items);
         model.addAttribute("allUsers", allUsers);
         model.addAttribute("selectedUserId", userId);
         model.addAttribute("selectedType", type);
@@ -359,61 +378,71 @@ public class AdminController {
         }
 
         // Общая статистика по всем пользователям
+        List<User> allUsers = userRepository.findAll();
         BigDecimal totalIncome = BigDecimal.ZERO;
         BigDecimal totalExpense = BigDecimal.ZERO;
-        long totalTransactions = 0;
+        long totalItems = 0;
 
-        List<User> allUsers = userRepository.findAll();
         for (User user : allUsers) {
-            List<Transaction> userTransactions = transactionRepository
-                    .findByUserAndDateBetweenOrderByDateDesc(user, startDate, endDate);
+            List<Income> userIncomes = incomeRepository.findByUserAndDateBetween(user, startDate, endDate);
+            List<Expense> userExpenses = expenseRepository.findByUserAndDateBetween(user, startDate, endDate);
 
-            BigDecimal userIncome = userTransactions.stream()
-                    .filter(t -> t.getType() == Transaction.TransactionType.INCOME)
-                    .map(Transaction::getAmount)
+            BigDecimal userIncome = userIncomes.stream()
+                    .map(Income::getAmount)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            BigDecimal userExpense = userTransactions.stream()
-                    .filter(t -> t.getType() == Transaction.TransactionType.EXPENSE)
-                    .map(Transaction::getAmount)
+            BigDecimal userExpense = userExpenses.stream()
+                    .map(Expense::getAmount)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             totalIncome = totalIncome.add(userIncome);
             totalExpense = totalExpense.add(userExpense);
-            totalTransactions += userTransactions.size();
+            totalItems += userIncomes.size() + userExpenses.size();
         }
 
         // Статистика по категориям
-        List<Transaction> allTransactions = transactionRepository.findAll().stream()
-                .filter(t -> !t.getDate().isBefore(startDate) && !t.getDate().isAfter(endDate))
-                .filter(t -> t.getType() == Transaction.TransactionType.EXPENSE)
-                .collect(Collectors.toList());
+        List<Expense> allExpenses = new ArrayList<>();
+        for (User user : allUsers) {
+            List<Expense> userExpenses = expenseRepository.findByUserAndDateBetween(user, startDate, endDate);
+            allExpenses.addAll(userExpenses);
+        }
 
         Map<String, CategoryStat> categoryStatsMap = new HashMap<>();
-        for (Transaction transaction : allTransactions) {
-            if (transaction.getCategory() != null) {
-                String categoryName = transaction.getCategory().getName();
+        BigDecimal noCategoryAmount = BigDecimal.ZERO;
+        
+        for (Expense expense : allExpenses) {
+            if (expense.getCategory() != null) {
+                String categoryName = expense.getCategory().getName();
                 CategoryStat stat = categoryStatsMap.getOrDefault(categoryName,
-                    new CategoryStat(categoryName, transaction.getCategory().getColor()));
-                stat.amount = stat.amount.add(transaction.getAmount());
+                    new CategoryStat(categoryName, expense.getCategory().getColor()));
+                stat.amount = stat.amount.add(expense.getAmount());
                 categoryStatsMap.put(categoryName, stat);
+            } else {
+                noCategoryAmount = noCategoryAmount.add(expense.getAmount());
             }
         }
-
-        List<CategoryStat> categoryStats = categoryStatsMap.values().stream()
-                .sorted((a, b) -> b.amount.compareTo(a.amount))
-                .collect(Collectors.toList());
+        
+        // Добавляем категорию "Без категории", если есть расходы без категории
+        if (noCategoryAmount.compareTo(BigDecimal.ZERO) > 0) {
+            CategoryStat noCategoryStat = new CategoryStat("Без категории", "#95a5a6");
+            noCategoryStat.amount = noCategoryAmount;
+            categoryStatsMap.put("Без категории", noCategoryStat);
+        }
 
         BigDecimal totalExpenseForPercentage = totalExpense.compareTo(BigDecimal.ZERO) > 0 ? totalExpense : BigDecimal.ONE;
-        for (CategoryStat stat : categoryStats) {
-            stat.percentage = stat.amount.divide(totalExpenseForPercentage, 2, java.math.RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100)).intValue();
-        }
+        
+        List<CategoryStat> categoryStats = categoryStatsMap.values().stream()
+                .peek(stat -> {
+                    stat.percentage = stat.amount.divide(totalExpenseForPercentage, 2, java.math.RoundingMode.HALF_UP)
+                            .multiply(BigDecimal.valueOf(100)).intValue();
+                })
+                .sorted((a, b) -> b.amount.compareTo(a.amount))
+                .collect(Collectors.toList());
 
         model.addAttribute("user", currentUser);
         model.addAttribute("totalIncome", totalIncome);
         model.addAttribute("totalExpense", totalExpense);
-        model.addAttribute("totalTransactions", totalTransactions);
+        model.addAttribute("totalTransactions", totalItems);
         model.addAttribute("categoryStats", categoryStats);
         model.addAttribute("period", period != null ? period : "month");
         model.addAttribute("startDate", startDate);

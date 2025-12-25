@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Поиск пользователей - Expense Tracker</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="dashboard-container">
+  <!-- Sidebar -->
+  <div th:replace="~{accountant/fragments/sidebar :: sidebar(activePage='search-users')}"></div>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <header class="content-header">
+      <div class="header-left">
+        <h1>Поиск пользователей</h1>
+        <p class="welcome-message">Найдите пользователей, которым хотите стать бухгалтером</p>
+      </div>
+    </header>
+
+    <!-- Success/Error Messages -->
+    <div th:if="${success}" class="alert alert-success" style="margin: 1rem 2rem;">
+      <i class="fas fa-check-circle"></i> <span th:text="${success}"></span>
+    </div>
+    
+    <div th:if="${error}" class="alert alert-error" style="margin: 1rem 2rem;">
+      <i class="fas fa-exclamation-circle"></i> <span th:text="${error}"></span>
+    </div>
+
+    <!-- Search Form -->
+    <div style="margin: 1rem 2rem;">
+      <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+        <h3 style="margin: 0 0 1rem 0; color: #2c3e50;">Фильтры поиска</h3>
+        <form method="get" action="/accountant/search-users" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) auto; gap: 1rem; align-items: flex-end;">
+          <div>
+            <label for="firstName" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #2c3e50;">Имя</label>
+            <input type="text" id="firstName" name="firstName" th:value="${firstName}" 
+                   placeholder="Введите имя" 
+                   style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem;">
+          </div>
+          <div>
+            <label for="lastName" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #2c3e50;">Фамилия</label>
+            <input type="text" id="lastName" name="lastName" th:value="${lastName}" 
+                   placeholder="Введите фамилию" 
+                   style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem;">
+          </div>
+          <div>
+            <label for="username" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #2c3e50;">Username</label>
+            <input type="text" id="username" name="username" th:value="${username}" 
+                   placeholder="Введите username" 
+                   style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem;">
+          </div>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button type="submit" class="btn btn-primary" style="white-space: nowrap;">
+              <i class="fas fa-search"></i> Поиск
+            </button>
+            <a href="/accountant/search-users" class="btn btn-secondary" style="white-space: nowrap;">
+              <i class="fas fa-redo"></i> Сброс
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Found Users List -->
+    <div style="margin: 1rem 2rem;">
+      <div th:if="${foundUsers != null && foundUsers.size() > 0}">
+        <h2 style="margin-bottom: 1rem;">Пользователи <span style="font-size: 0.9rem; font-weight: normal; color: #7f8c8d;" th:text="'(' + ${foundUsers.size()} + ')'">(0)</span></h2>
+        <div style="display: grid; gap: 1rem;">
+          <div th:each="foundUser : ${foundUsers}" 
+               style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h3 style="margin: 0 0 0.5rem 0; color: #2c3e50;" th:text="${foundUser.firstName} + ' ' + ${foundUser.lastName}">Пользователь</h3>
+              <p style="margin: 0.25rem 0; color: #7f8c8d;">
+                <i class="fas fa-envelope"></i> <span th:text="${foundUser.email}">email</span>
+              </p>
+              <p style="margin: 0.25rem 0; color: #7f8c8d;">
+                <i class="fas fa-user"></i> <span th:text="${foundUser.username}">username</span>
+              </p>
+            </div>
+            <div>
+              <form th:if="${!connectedUserIds.contains(foundUser.id) && !usersWithPendingRequests.contains(foundUser.id)}" 
+                    th:action="@{/accountant/requests/send}" method="post" style="display: inline;">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <input type="hidden" name="userId" th:value="${foundUser.id}"/>
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-paper-plane"></i> Отправить запрос
+                </button>
+              </form>
+              <span th:if="${connectedUserIds.contains(foundUser.id)}" 
+                    class="btn btn-secondary" style="background: #10b981; color: white; cursor: default;">
+                <i class="fas fa-check"></i> Уже связан
+              </span>
+              <span th:if="${usersWithPendingRequests.contains(foundUser.id)}" 
+                    class="btn btn-secondary" style="background: #f59e0b; color: white; cursor: default;">
+                <i class="fas fa-clock"></i> Запрос отправлен
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div th:if="${foundUsers != null && foundUsers.size() == 0}" 
+           style="text-align: center; padding: 3rem; background: white; border-radius: 12px; border: 2px dashed #e1e5e9;">
+        <i class="fas fa-search" style="font-size: 3rem; color: #bdc3c7; margin-bottom: 1rem;"></i>
+        <p style="color: #95a5a6;">Пользователи не найдены по заданным критериям</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
+

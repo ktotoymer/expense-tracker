@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,42 +24,60 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import com.expensetracker.dto.BudgetDto;
-import com.expensetracker.entity.Budget;
+import com.expensetracker.entity.AccountantRecommendation;
+import com.expensetracker.entity.AccountantRequest;
+import com.expensetracker.entity.AccountantUserRelationship;
 import com.expensetracker.entity.Category;
-import com.expensetracker.entity.Transaction;
+import com.expensetracker.entity.Expense;
+import com.expensetracker.entity.Income;
 import com.expensetracker.entity.User;
-import com.expensetracker.repository.BudgetRepository;
+import com.expensetracker.repository.AccountantRecommendationRepository;
+import com.expensetracker.repository.AccountantRequestRepository;
+import com.expensetracker.repository.AccountantUserRelationshipRepository;
 import com.expensetracker.repository.CategoryRepository;
-import com.expensetracker.repository.TransactionRepository;
+import com.expensetracker.repository.ExpenseRepository;
+import com.expensetracker.repository.IncomeRepository;
 import com.expensetracker.repository.UserRepository;
 import com.expensetracker.service.AiExpenseAnalysisService;
-
-import jakarta.servlet.http.HttpServletRequest;
+import com.expensetracker.service.StatisticsService;
 
 @Controller
 @RequestMapping("/user")
+@PreAuthorize("hasRole('USER')")
 public class UserController {
 
     private final UserRepository userRepository;
-    private final TransactionRepository transactionRepository;
     private final CategoryRepository categoryRepository;
-    private final BudgetRepository budgetRepository;
+    private final IncomeRepository incomeRepository;
+    private final ExpenseRepository expenseRepository;
     private final PasswordEncoder passwordEncoder;
     private final AiExpenseAnalysisService aiExpenseAnalysisService;
+    private final StatisticsService statisticsService;
+
+    private final AccountantRequestRepository accountantRequestRepository;
+    private final AccountantUserRelationshipRepository accountantUserRelationshipRepository;
+    private final AccountantRecommendationRepository accountantRecommendationRepository;
 
     public UserController(UserRepository userRepository,
-                          TransactionRepository transactionRepository,
                           CategoryRepository categoryRepository,
-                          BudgetRepository budgetRepository,
+                          IncomeRepository incomeRepository,
+                          ExpenseRepository expenseRepository,
                           PasswordEncoder passwordEncoder,
-                          AiExpenseAnalysisService aiExpenseAnalysisService) {
+                          AiExpenseAnalysisService aiExpenseAnalysisService,
+                          StatisticsService statisticsService,
+                          AccountantRequestRepository accountantRequestRepository,
+                          AccountantUserRelationshipRepository accountantUserRelationshipRepository,
+                          AccountantRecommendationRepository accountantRecommendationRepository) {
         this.userRepository = userRepository;
-        this.transactionRepository = transactionRepository;
         this.categoryRepository = categoryRepository;
-        this.budgetRepository = budgetRepository;
+        this.incomeRepository = incomeRepository;
+        this.expenseRepository = expenseRepository;
         this.passwordEncoder = passwordEncoder;
         this.aiExpenseAnalysisService = aiExpenseAnalysisService;
+        this.statisticsService = statisticsService;
+        this.accountantRequestRepository = accountantRequestRepository;
+        this.accountantUserRelationshipRepository = accountantUserRelationshipRepository;
+        this.accountantRecommendationRepository = accountantRecommendationRepository;
     }
 
     private User getCurrentUser() {
@@ -72,143 +91,169 @@ public class UserController {
     public String dashboard(Model model) {
         User user = getCurrentUser();
         LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
+        LocalDate endOfMonth = LocalDate.now().withDayOfMonth(LocalDate.now().lengthOfMonth());
 
-        // Статистика
-        BigDecimal incomeTotal = transactionRepository.sumIncomeByUserAndDateAfter(user, startOfMonth);
-        BigDecimal expenseTotal = transactionRepository.sumExpenseByUserAndDateAfter(user, startOfMonth);
+        // Доходы за текущий месяц
+        BigDecimal incomeTotal = statisticsService.calculateTotalIncome(user, startOfMonth);
         
-        if (incomeTotal == null) incomeTotal = BigDecimal.ZERO;
-        if (expenseTotal == null) expenseTotal = BigDecimal.ZERO;
+        // Расходы за текущий месяц
+        BigDecimal expenseTotal = statisticsService.calculateTotalExpense(user, startOfMonth);
+
+        // Баланс за все время
+        BigDecimal balance = statisticsService.calculateTotalBalance(user);
+
+        // Последние расходы для отображения
+        List<Expense> recentExpenses = expenseRepository.findByUserOrderByDateDesc(user)
+                .stream()
+                .limit(10)
+                .collect(java.util.stream.Collectors.toList());
+
+        // Статистика по категориям для диаграммы (топ-4 + остальные)
+        List<StatisticsService.CategoryStatistics> categoryStatsList = 
+                statisticsService.calculateCategoryStatisticsWithPercentages(user, startOfMonth, endOfMonth);
         
-        BigDecimal balance = incomeTotal.subtract(expenseTotal);
-
-        // Последние транзакции
-        List<Transaction> recentTransactions = transactionRepository.findTop10ByUserOrderByDateDesc(user);
-
-        // Активные бюджеты с расчетом потраченных средств
-        List<Budget> activeBudgets = budgetRepository.findActiveBudgetsByUser(user, LocalDate.now());
-        List<BudgetDto> budgetDtos = new ArrayList<>();
+        // Сортируем по сумме (убывание) и берем топ-4
+        List<StatisticsService.CategoryStatistics> sortedStats = categoryStatsList.stream()
+                .sorted((a, b) -> b.getAmount().compareTo(a.getAmount()))
+                .collect(Collectors.toList());
         
-        for (Budget budget : activeBudgets) {
-            BigDecimal spent = BigDecimal.ZERO;
-            if (budget.getCategory() != null) {
-                List<Transaction> categoryTransactions = transactionRepository
-                        .findByUserAndDateBetweenOrderByDateDesc(user, budget.getStartDate(), budget.getEndDate())
-                        .stream()
-                        .filter(t -> t.getCategory() != null && t.getCategory().getId().equals(budget.getCategory().getId()))
-                        .filter(t -> t.getType() == Transaction.TransactionType.EXPENSE)
-                        .collect(Collectors.toList());
-                spent = categoryTransactions.stream()
-                        .map(Transaction::getAmount)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-            } else {
-                // Если бюджет без категории, считаем все расходы за период
-                List<Transaction> periodTransactions = transactionRepository
-                        .findByUserAndDateBetweenOrderByDateDesc(user, budget.getStartDate(), budget.getEndDate())
-                        .stream()
-                        .filter(t -> t.getType() == Transaction.TransactionType.EXPENSE)
-                        .collect(Collectors.toList());
-                spent = periodTransactions.stream()
-                        .map(Transaction::getAmount)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-            }
-            budgetDtos.add(new BudgetDto(budget, spent));
-        }
-
-        // Категории для формы
-        List<Category> categories = categoryRepository.findByUserOrderByNameAsc(user);
-
-        // Расчет использования бюджета
-        BigDecimal budgetTotal = activeBudgets.stream()
-                .map(Budget::getAmount)
+        List<StatisticsService.CategoryStatistics> top4Stats = sortedStats.stream()
+                .limit(4)
+                .collect(Collectors.toList());
+        
+        // Считаем сумму остальных категорий
+        BigDecimal otherAmount = sortedStats.stream()
+                .skip(4)
+                .map(StatisticsService.CategoryStatistics::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         
-        int budgetUsage = 0;
-        if (!activeBudgets.isEmpty() && budgetTotal.compareTo(BigDecimal.ZERO) > 0) {
-            budgetUsage = expenseTotal.divide(budgetTotal, 2, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100)).intValue();
+        // Считаем процент для остальных (от общего расхода за месяц)
+        BigDecimal totalExpenseForPercentage = expenseTotal.compareTo(BigDecimal.ZERO) > 0 
+                ? expenseTotal 
+                : BigDecimal.ONE;
+        int otherPercentage = otherAmount.compareTo(BigDecimal.ZERO) > 0
+                ? otherAmount.divide(totalExpenseForPercentage, 2, RoundingMode.HALF_UP)
+                  .multiply(BigDecimal.valueOf(100))
+                  .intValue()
+                : 0;
+        
+        // Конвертируем топ-4 в CategoryStat
+        List<CategoryStat> categoryStats = top4Stats.stream()
+                .map(stat -> {
+                    CategoryStat categoryStat = new CategoryStat(stat.getName(), stat.getColor());
+                    categoryStat.setAmount(stat.getAmount());
+                    categoryStat.setPercentage(stat.getPercentage());
+                    return categoryStat;
+                })
+                .collect(Collectors.toList());
+        
+        // Добавляем категорию "Остальное" если есть категории вне топа
+        if (otherAmount.compareTo(BigDecimal.ZERO) > 0) {
+            CategoryStat otherStat = new CategoryStat("Остальное", "#95a5a6");
+            otherStat.setAmount(otherAmount);
+            otherStat.setPercentage(otherPercentage);
+            categoryStats.add(otherStat);
         }
 
         model.addAttribute("user", user);
         model.addAttribute("incomeTotal", incomeTotal);
         model.addAttribute("expenseTotal", expenseTotal);
         model.addAttribute("balance", balance);
-        model.addAttribute("recentTransactions", recentTransactions);
-        model.addAttribute("activeBudgets", budgetDtos);
-        model.addAttribute("categories", categories);
-        model.addAttribute("budgetTotal", budgetTotal);
-        model.addAttribute("budgetUsage", budgetUsage);
+        model.addAttribute("recentExpenses", recentExpenses);
+        model.addAttribute("categoryStats", categoryStats);
 
         return "user/dashboard";
     }
 
-    @GetMapping("/transactions")
-    public String transactions(Model model) {
-        User user = getCurrentUser();
-        List<Transaction> transactions = transactionRepository.findByUserOrderByDateDesc(user);
-        List<Category> categories = categoryRepository.findByUserOrderByNameAsc(user);
-
-        model.addAttribute("user", user);
-        model.addAttribute("transactions", transactions);
-        model.addAttribute("categories", categories);
-        return "user/transactions";
-    }
-
-    @PostMapping("/transactions/add")
-    public String addTransaction(@RequestParam BigDecimal amount,
-                                @RequestParam String type,
-                                @RequestParam(required = false) String description,
-                                @RequestParam LocalDate date,
-                                @RequestParam(required = false) Long categoryId,
-                                HttpServletRequest request,
-                                RedirectAttributes redirectAttributes) {
+    @GetMapping("/expenses")
+    public String expenses(Model model) {
         try {
             User user = getCurrentUser();
-            Transaction transaction = new Transaction();
-            transaction.setAmount(amount);
-            transaction.setType(Transaction.TransactionType.valueOf(type));
-            transaction.setDescription(description);
-            transaction.setDate(date != null ? date : LocalDate.now());
-            transaction.setUser(user);
+            List<Expense> expenses = expenseRepository.findByUserOrderByDateDesc(user);
+            List<Category> categories = categoryRepository.findByUserOrderByNameAsc(user);
 
-            if (categoryId != null) {
-                Optional<Category> category = categoryRepository.findById(categoryId);
-                category.ifPresent(transaction::setCategory);
-            }
-
-            transactionRepository.save(transaction);
-            redirectAttributes.addFlashAttribute("success", "Транзакция успешно добавлена!");
+            model.addAttribute("user", user);
+            model.addAttribute("expenses", expenses);
+            model.addAttribute("categories", categories);
+            return "user/expenses";
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Ошибка при добавлении транзакции: " + e.getMessage());
+            model.addAttribute("error", "Ошибка при загрузке расходов: " + e.getMessage());
+            return "user/expenses";
         }
-        // Определяем, откуда пришел запрос, и перенаправляем соответственно
-        String referer = request.getHeader("Referer");
-        if (referer != null && referer.contains("/transactions")) {
-            return "redirect:/user/transactions";
-        }
-        return "redirect:/user/dashboard";
     }
 
-    @PostMapping("/transactions/{id}/delete")
-    public String deleteTransaction(@PathVariable Long id, 
-                                   HttpServletRequest request,
-                                   RedirectAttributes redirectAttributes) {
+    @PostMapping("/expenses/add")
+    public String addExpense(@RequestParam String name,
+                          @RequestParam BigDecimal amount,
+                          @RequestParam LocalDate date,
+                          @RequestParam String type,
+                          @RequestParam(required = false) String recurrencePeriod,
+                          @RequestParam(required = false) Long categoryId,
+                          RedirectAttributes redirectAttributes) {
+        try {
+            User user = getCurrentUser();
+            
+            // Валидация
+            if (name == null || name.trim().isEmpty()) {
+                redirectAttributes.addFlashAttribute("error", "Название расхода не может быть пустым!");
+                return "redirect:/user/expenses";
+            }
+            
+            if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+                redirectAttributes.addFlashAttribute("error", "Сумма расхода должна быть больше нуля!");
+                return "redirect:/user/expenses";
+            }
+            
+            if (date == null) {
+                redirectAttributes.addFlashAttribute("error", "Дата должна быть указана!");
+                return "redirect:/user/expenses";
+            }
+            
+            Expense expense = new Expense();
+            expense.setName(name.trim());
+            expense.setAmount(amount);
+            expense.setDate(date);
+            expense.setUser(user);
+            
+            Expense.ExpenseType expenseType = Expense.ExpenseType.valueOf(type.toUpperCase());
+            expense.setType(expenseType);
+            
+            if (expenseType == Expense.ExpenseType.RECURRING) {
+                if (recurrencePeriod == null || recurrencePeriod.isEmpty()) {
+                    redirectAttributes.addFlashAttribute("error", "Период повторения должен быть указан для периодического расхода!");
+                    return "redirect:/user/expenses";
+                }
+                expense.setRecurrencePeriod(Expense.RecurrencePeriod.valueOf(recurrencePeriod.toUpperCase()));
+            }
+
+            if (categoryId != null && categoryId > 0) {
+                Optional<Category> category = categoryRepository.findById(categoryId);
+                if (category.isPresent() && category.get().getUser().getId().equals(user.getId())) {
+                    expense.setCategory(category.get());
+                }
+            }
+
+            expenseRepository.save(expense);
+            redirectAttributes.addFlashAttribute("success", "Расход добавлен!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Ошибка при добавлении расхода: " + e.getMessage());
+        }
+        return "redirect:/user/expenses";
+    }
+
+    @PostMapping("/expenses/{id}/delete")
+    public String deleteExpense(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         User user = getCurrentUser();
-        Optional<Transaction> transaction = transactionRepository.findById(id);
+        Optional<Expense> expense = expenseRepository.findById(id);
         
-        if (transaction.isPresent() && transaction.get().getUser().getId().equals(user.getId())) {
-            transactionRepository.deleteById(id);
-            redirectAttributes.addFlashAttribute("success", "Транзакция удалена!");
+        if (expense.isPresent() && expense.get().getUser().getId().equals(user.getId())) {
+            expenseRepository.deleteById(id);
+            redirectAttributes.addFlashAttribute("success", "Расход удален!");
         } else {
-            redirectAttributes.addFlashAttribute("error", "Транзакция не найдена!");
+            redirectAttributes.addFlashAttribute("error", "Расход не найден!");
         }
         
-        // Определяем, откуда пришел запрос
-        String referer = request.getHeader("Referer");
-        if (referer != null && referer.contains("/transactions")) {
-            return "redirect:/user/transactions";
-        }
-        return "redirect:/user/dashboard";
+        return "redirect:/user/expenses";
     }
 
     @GetMapping("/categories")
@@ -252,86 +297,85 @@ public class UserController {
         return "redirect:/user/categories";
     }
 
-    @GetMapping("/budgets")
-    public String budgets(Model model) {
-        User user = getCurrentUser();
-        List<Budget> budgets = budgetRepository.findByUser(user);
-        List<Category> categories = categoryRepository.findByUserOrderByNameAsc(user);
-        
-        List<BudgetDto> budgetDtos = new ArrayList<>();
-        for (Budget budget : budgets) {
-            BigDecimal spent = BigDecimal.ZERO;
-            if (budget.getCategory() != null) {
-                List<Transaction> categoryTransactions = transactionRepository
-                        .findByUserAndDateBetweenOrderByDateDesc(user, budget.getStartDate(), budget.getEndDate())
-                        .stream()
-                        .filter(t -> t.getCategory() != null && t.getCategory().getId().equals(budget.getCategory().getId()))
-                        .filter(t -> t.getType() == Transaction.TransactionType.EXPENSE)
-                        .collect(Collectors.toList());
-                spent = categoryTransactions.stream()
-                        .map(Transaction::getAmount)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-            } else {
-                List<Transaction> periodTransactions = transactionRepository
-                        .findByUserAndDateBetweenOrderByDateDesc(user, budget.getStartDate(), budget.getEndDate())
-                        .stream()
-                        .filter(t -> t.getType() == Transaction.TransactionType.EXPENSE)
-                        .collect(Collectors.toList());
-                spent = periodTransactions.stream()
-                        .map(Transaction::getAmount)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-            }
-            budgetDtos.add(new BudgetDto(budget, spent));
-        }
+    @GetMapping("/incomes")
+    public String incomes(Model model) {
+        try {
+            User user = getCurrentUser();
+            List<Income> incomes = incomeRepository.findByUserOrderByDateDesc(user);
 
-        model.addAttribute("user", user);
-        model.addAttribute("budgets", budgetDtos);
-        model.addAttribute("categories", categories);
-        return "user/budgets";
+            model.addAttribute("user", user);
+            model.addAttribute("incomes", incomes);
+            return "user/incomes";
+        } catch (Exception e) {
+            model.addAttribute("error", "Ошибка при загрузке доходов: " + e.getMessage());
+            return "user/incomes";
+        }
     }
 
-    @PostMapping("/budgets/add")
-    public String addBudget(@RequestParam String name,
+    @PostMapping("/incomes/add")
+    public String addIncome(@RequestParam String name,
                           @RequestParam BigDecimal amount,
-                          @RequestParam LocalDate startDate,
-                          @RequestParam LocalDate endDate,
-                          @RequestParam(required = false) Long categoryId,
+                          @RequestParam LocalDate date,
+                          @RequestParam String type,
+                          @RequestParam(required = false) String recurrencePeriod,
                           RedirectAttributes redirectAttributes) {
         try {
             User user = getCurrentUser();
-            Budget budget = new Budget();
-            budget.setName(name);
-            budget.setAmount(amount);
-            budget.setStartDate(startDate);
-            budget.setEndDate(endDate);
-            budget.setUser(user);
-
-            if (categoryId != null) {
-                Optional<Category> category = categoryRepository.findById(categoryId);
-                category.ifPresent(budget::setCategory);
+            
+            // Валидация
+            if (name == null || name.trim().isEmpty()) {
+                redirectAttributes.addFlashAttribute("error", "Название дохода не может быть пустым!");
+                return "redirect:/user/incomes";
+            }
+            
+            if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+                redirectAttributes.addFlashAttribute("error", "Сумма дохода должна быть больше нуля!");
+                return "redirect:/user/incomes";
+            }
+            
+            if (date == null) {
+                redirectAttributes.addFlashAttribute("error", "Дата должна быть указана!");
+                return "redirect:/user/incomes";
+            }
+            
+            Income income = new Income();
+            income.setName(name.trim());
+            income.setAmount(amount);
+            income.setDate(date);
+            income.setUser(user);
+            
+            Income.IncomeType incomeType = Income.IncomeType.valueOf(type.toUpperCase());
+            income.setType(incomeType);
+            
+            if (incomeType == Income.IncomeType.RECURRING) {
+                if (recurrencePeriod == null || recurrencePeriod.isEmpty()) {
+                    redirectAttributes.addFlashAttribute("error", "Период повторения должен быть указан для периодического дохода!");
+                    return "redirect:/user/incomes";
+                }
+                income.setRecurrencePeriod(Income.RecurrencePeriod.valueOf(recurrencePeriod.toUpperCase()));
             }
 
-            budgetRepository.save(budget);
-            redirectAttributes.addFlashAttribute("success", "Бюджет создан!");
+            incomeRepository.save(income);
+            redirectAttributes.addFlashAttribute("success", "Доход добавлен!");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Ошибка при создании бюджета: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Ошибка при добавлении дохода: " + e.getMessage());
         }
-        return "redirect:/user/budgets";
+        return "redirect:/user/incomes";
     }
 
-    @PostMapping("/budgets/{id}/delete")
-    public String deleteBudget(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+    @PostMapping("/incomes/{id}/delete")
+    public String deleteIncome(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         User user = getCurrentUser();
-        Optional<Budget> budget = budgetRepository.findById(id);
+        Optional<Income> income = incomeRepository.findById(id);
         
-        if (budget.isPresent() && budget.get().getUser().getId().equals(user.getId())) {
-            budgetRepository.deleteById(id);
-            redirectAttributes.addFlashAttribute("success", "Бюджет удален!");
+        if (income.isPresent() && income.get().getUser().getId().equals(user.getId())) {
+            incomeRepository.deleteById(id);
+            redirectAttributes.addFlashAttribute("success", "Доход удален!");
         } else {
-            redirectAttributes.addFlashAttribute("error", "Бюджет не найден!");
+            redirectAttributes.addFlashAttribute("error", "Доход не найден!");
         }
         
-        return "redirect:/user/budgets";
+        return "redirect:/user/incomes";
     }
 
     @GetMapping("/reports")
@@ -340,39 +384,42 @@ public class UserController {
         LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
         LocalDate endOfMonth = LocalDate.now().withDayOfMonth(LocalDate.now().lengthOfMonth());
 
-        BigDecimal totalIncome = transactionRepository.sumIncomeByUserAndDateAfter(user, startOfMonth);
-        BigDecimal totalExpense = transactionRepository.sumExpenseByUserAndDateAfter(user, startOfMonth);
-        
-        if (totalIncome == null) totalIncome = BigDecimal.ZERO;
-        if (totalExpense == null) totalExpense = BigDecimal.ZERO;
+        // Доходы за текущий месяц
+        BigDecimal totalIncome = statisticsService.calculateTotalIncome(user, startOfMonth);
 
-        List<Transaction> allTransactions = transactionRepository.findByUserAndDateBetweenOrderByDateDesc(user, startOfMonth, endOfMonth);
-        
-        // Статистика по категориям
-        Map<Long, CategoryStat> categoryStatsMap = new HashMap<>();
-        for (Transaction transaction : allTransactions) {
-            if (transaction.getType() == Transaction.TransactionType.EXPENSE && transaction.getCategory() != null) {
-                Long categoryId = transaction.getCategory().getId();
-                CategoryStat stat = categoryStatsMap.getOrDefault(categoryId, 
-                    new CategoryStat(transaction.getCategory().getName(), transaction.getCategory().getColor()));
-                stat.amount = stat.amount.add(transaction.getAmount());
-                categoryStatsMap.put(categoryId, stat);
-            }
-        }
+        // Расходы за текущий месяц
+        BigDecimal totalExpense = statisticsService.calculateTotalExpense(user, startOfMonth);
 
-        List<CategoryStat> categoryStats = new ArrayList<>(categoryStatsMap.values());
-        BigDecimal totalExpenseForPercentage = totalExpense.compareTo(BigDecimal.ZERO) > 0 ? totalExpense : BigDecimal.ONE;
-        
-        for (CategoryStat stat : categoryStats) {
-            stat.percentage = stat.amount.divide(totalExpenseForPercentage, 2, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100)).intValue();
-        }
+        // Баланс за все время
+        BigDecimal balance = statisticsService.calculateTotalBalance(user);
+
+        // Используем StatisticsService для расчета статистики по категориям
+        List<StatisticsService.CategoryStatistics> categoryStatsList = 
+                statisticsService.calculateCategoryStatisticsWithPercentages(user, startOfMonth, endOfMonth);
+
+        // Конвертируем в CategoryStat для совместимости с представлением
+        List<CategoryStat> categoryStats = categoryStatsList.stream()
+                .map(stat -> {
+                    CategoryStat categoryStat = new CategoryStat(stat.getName(), stat.getColor());
+                    categoryStat.setAmount(stat.getAmount());
+                    categoryStat.setPercentage(stat.getPercentage());
+                    return categoryStat;
+                })
+                .collect(Collectors.toList());
+
+        // Получаем общее количество элементов (доходы + расходы) за период
+        List<Income> incomesInPeriod = incomeRepository.findByUserAndDateBetween(user, startOfMonth, endOfMonth);
+        List<Expense> expensesInPeriod = expenseRepository.findByUserAndDateBetween(user, startOfMonth, endOfMonth);
+        long totalItems = incomesInPeriod.size() + expensesInPeriod.size();
 
         model.addAttribute("user", user);
         model.addAttribute("totalIncome", totalIncome);
         model.addAttribute("totalExpense", totalExpense);
-        model.addAttribute("totalTransactions", allTransactions.size());
+        model.addAttribute("balance", balance);
+        model.addAttribute("totalTransactions", totalItems);
         model.addAttribute("categoryStats", categoryStats);
+        model.addAttribute("startDate", startOfMonth);
+        model.addAttribute("endDate", endOfMonth);
         return "user/reports";
     }
 
@@ -465,6 +512,269 @@ public class UserController {
         public void setAmount(BigDecimal amount) { this.amount = amount; }
         public int getPercentage() { return percentage; }
         public void setPercentage(int percentage) { this.percentage = percentage; }
+    }
+
+    @GetMapping("/search-accountants")
+    public String searchAccountants(Model model, @RequestParam(required = false) String search) {
+        User currentUser = getCurrentUser();
+        
+        List<User> foundAccountants = new ArrayList<>();
+        Optional<AccountantUserRelationship> currentRelationshipOpt = 
+                accountantUserRelationshipRepository.findByUser(currentUser);
+        Long currentAccountantId = currentRelationshipOpt.map(rel -> rel.getAccountant().getId()).orElse(null);
+        
+        List<AccountantRequest> pendingRequests = accountantRequestRepository
+                .findByUserAndStatus(currentUser, AccountantRequest.RequestStatus.PENDING);
+        List<Long> accountantsWithPendingRequests = pendingRequests.stream()
+                .map(req -> req.getAccountant().getId())
+                .collect(Collectors.toList());
+
+        if (search != null && !search.trim().isEmpty()) {
+            String searchTerm = "%" + search.trim().toLowerCase() + "%";
+            foundAccountants = userRepository.findAll().stream()
+                    .filter(user -> user.getRoles().stream()
+                            .anyMatch(role -> role.getName().equals("ROLE_ACCOUNTANT")))
+                    .filter(user -> !user.getId().equals(currentUser.getId()))
+                    .filter(user -> {
+                        String firstName = user.getFirstName() != null ? user.getFirstName().toLowerCase() : "";
+                        String lastName = user.getLastName() != null ? user.getLastName().toLowerCase() : "";
+                        String email = user.getEmail() != null ? user.getEmail().toLowerCase() : "";
+                        String username = user.getUsername() != null ? user.getUsername().toLowerCase() : "";
+                        String searchLower = searchTerm.substring(1, searchTerm.length() - 1);
+                        return firstName.contains(searchLower) ||
+                               lastName.contains(searchLower) ||
+                               email.contains(searchLower) ||
+                               username.contains(searchLower);
+                    })
+                    .collect(Collectors.toList());
+        }
+
+        model.addAttribute("user", currentUser);
+        model.addAttribute("foundAccountants", foundAccountants);
+        model.addAttribute("search", search);
+        model.addAttribute("currentAccountantId", currentAccountantId);
+        model.addAttribute("accountantsWithPendingRequests", accountantsWithPendingRequests);
+
+        return "user/search-accountants";
+    }
+
+    @PostMapping("/requests/send")
+    public String sendRequest(@RequestParam Long accountantId, RedirectAttributes redirectAttributes) {
+        try {
+            User currentUser = getCurrentUser();
+            Optional<User> targetAccountantOpt = userRepository.findById(accountantId);
+            
+            if (targetAccountantOpt.isEmpty()) {
+                redirectAttributes.addFlashAttribute("error", "Бухгалтер не найден!");
+                return "redirect:/user/search-accountants";
+            }
+            
+            User targetAccountant = targetAccountantOpt.get();
+            
+            // Проверка: бухгалтер не должен быть самим пользователем
+            if (targetAccountant.getId().equals(currentUser.getId())) {
+                redirectAttributes.addFlashAttribute("error", "Вы не можете отправить запрос самому себе!");
+                return "redirect:/user/search-accountants";
+            }
+            
+            // Проверка: у пользователя не должно быть уже бухгалтера
+            if (accountantUserRelationshipRepository.existsByUser(currentUser)) {
+                redirectAttributes.addFlashAttribute("error", "У вас уже есть бухгалтер!");
+                return "redirect:/user/search-accountants";
+            }
+            
+            // Проверка: не должно быть активного запроса
+            if (accountantRequestRepository.findPendingRequestByAccountantAndUser(targetAccountant, currentUser).isPresent()) {
+                redirectAttributes.addFlashAttribute("error", "Запрос уже отправлен!");
+                return "redirect:/user/search-accountants";
+            }
+            
+            AccountantRequest request = new AccountantRequest();
+            request.setAccountant(targetAccountant);
+            request.setUser(currentUser);
+            request.setStatus(AccountantRequest.RequestStatus.PENDING);
+            request.setInitiator(AccountantRequest.InitiatorType.USER);
+            accountantRequestRepository.save(request);
+            
+            redirectAttributes.addFlashAttribute("success", "Запрос успешно отправлен!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Ошибка при отправке запроса: " + e.getMessage());
+        }
+        return "redirect:/user/search-accountants";
+    }
+
+    @GetMapping("/requests")
+    public String requests(Model model) {
+        User currentUser = getCurrentUser();
+        
+        // Входящие запросы (от бухгалтеров)
+        List<AccountantRequest> incomingRequests = accountantRequestRepository.findByUser(currentUser)
+                .stream()
+                .filter(req -> req.getInitiator() == AccountantRequest.InitiatorType.ACCOUNTANT)
+                .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+                .collect(Collectors.toList());
+        
+        // Исходящие запросы (от пользователя)
+        List<AccountantRequest> outgoingRequests = accountantRequestRepository.findByUser(currentUser)
+                .stream()
+                .filter(req -> req.getInitiator() == AccountantRequest.InitiatorType.USER)
+                .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+                .collect(Collectors.toList());
+        
+        model.addAttribute("user", currentUser);
+        model.addAttribute("incomingRequests", incomingRequests);
+        model.addAttribute("outgoingRequests", outgoingRequests);
+        
+        return "user/requests";
+    }
+
+    @PostMapping("/requests/{id}/approve")
+    public String approveRequest(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        try {
+            User currentUser = getCurrentUser();
+            Optional<AccountantRequest> requestOpt = accountantRequestRepository.findById(id);
+            
+            if (requestOpt.isEmpty()) {
+                redirectAttributes.addFlashAttribute("error", "Запрос не найден!");
+                return "redirect:/user/requests";
+            }
+            
+            AccountantRequest request = requestOpt.get();
+            
+            // Проверка: запрос должен быть адресован текущему пользователю и от бухгалтера
+            if (!request.getUser().getId().equals(currentUser.getId()) || 
+                request.getInitiator() != AccountantRequest.InitiatorType.ACCOUNTANT) {
+                redirectAttributes.addFlashAttribute("error", "Нет доступа к этому запросу!");
+                return "redirect:/user/requests";
+            }
+            
+            if (request.getStatus() != AccountantRequest.RequestStatus.PENDING) {
+                redirectAttributes.addFlashAttribute("error", "Запрос уже обработан!");
+                return "redirect:/user/requests";
+            }
+            
+            User targetAccountant = request.getAccountant();
+            
+            // Если у пользователя уже есть другой бухгалтер, удаляем старую связь
+            accountantUserRelationshipRepository.findByUser(currentUser).ifPresent(accountantUserRelationshipRepository::delete);
+            
+            // Отклоняем другие активные запросы от этого пользователя
+            List<AccountantRequest> otherRequests = accountantRequestRepository
+                    .findByUserAndStatus(currentUser, AccountantRequest.RequestStatus.PENDING);
+            for (AccountantRequest otherReq : otherRequests) {
+                if (!otherReq.getId().equals(request.getId())) {
+                    otherReq.setStatus(AccountantRequest.RequestStatus.REJECTED);
+                    accountantRequestRepository.save(otherReq);
+                }
+            }
+            
+            // Создаем связь
+            AccountantUserRelationship relationship = new AccountantUserRelationship();
+            relationship.setAccountant(targetAccountant);
+            relationship.setUser(currentUser);
+            accountantUserRelationshipRepository.save(relationship);
+            
+            // Обновляем статус запроса
+            request.setStatus(AccountantRequest.RequestStatus.APPROVED);
+            accountantRequestRepository.save(request);
+            
+            redirectAttributes.addFlashAttribute("success", "Запрос подтвержден!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Ошибка при подтверждении запроса: " + e.getMessage());
+        }
+        return "redirect:/user/requests";
+    }
+
+    @PostMapping("/requests/{id}/reject")
+    public String rejectRequest(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        try {
+            User currentUser = getCurrentUser();
+            Optional<AccountantRequest> requestOpt = accountantRequestRepository.findById(id);
+            
+            if (requestOpt.isEmpty()) {
+                redirectAttributes.addFlashAttribute("error", "Запрос не найден!");
+                return "redirect:/user/requests";
+            }
+            
+            AccountantRequest request = requestOpt.get();
+            
+            // Проверка: запрос должен быть адресован текущему пользователю
+            if (!request.getUser().getId().equals(currentUser.getId())) {
+                redirectAttributes.addFlashAttribute("error", "Нет доступа к этому запросу!");
+                return "redirect:/user/requests";
+            }
+            
+            if (request.getStatus() != AccountantRequest.RequestStatus.PENDING) {
+                redirectAttributes.addFlashAttribute("error", "Запрос уже обработан!");
+                return "redirect:/user/requests";
+            }
+            
+            request.setStatus(AccountantRequest.RequestStatus.REJECTED);
+            accountantRequestRepository.save(request);
+            
+            redirectAttributes.addFlashAttribute("success", "Запрос отклонен!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Ошибка при отклонении запроса: " + e.getMessage());
+        }
+        return "redirect:/user/requests";
+    }
+
+    @PostMapping("/relationships/remove")
+    public String removeRelationship(RedirectAttributes redirectAttributes) {
+        try {
+            User currentUser = getCurrentUser();
+            Optional<AccountantUserRelationship> relationshipOpt = 
+                    accountantUserRelationshipRepository.findByUser(currentUser);
+            
+            if (relationshipOpt.isEmpty()) {
+                redirectAttributes.addFlashAttribute("error", "Связь не найдена!");
+                return "redirect:/user/dashboard";
+            }
+            
+            User accountant = relationshipOpt.get().getAccountant();
+            accountantUserRelationshipRepository.delete(relationshipOpt.get());
+            
+            // Удаляем все связанные запросы
+            List<AccountantRequest> relatedRequests = accountantRequestRepository.findByUser(currentUser)
+                    .stream()
+                    .filter(req -> req.getAccountant().getId().equals(accountant.getId()))
+                    .collect(Collectors.toList());
+            accountantRequestRepository.deleteAll(relatedRequests);
+            
+            redirectAttributes.addFlashAttribute("success", "Связь разорвана!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Ошибка при разрыве связи: " + e.getMessage());
+        }
+        return "redirect:/user/dashboard";
+    }
+
+    @GetMapping("/my-accountant")
+    public String myAccountant(Model model) {
+        User currentUser = getCurrentUser();
+        
+        // Находим активную связь с бухгалтером
+        Optional<AccountantUserRelationship> relationshipOpt = 
+                accountantUserRelationshipRepository.findByUser(currentUser);
+        
+        if (relationshipOpt.isEmpty()) {
+            model.addAttribute("user", currentUser);
+            model.addAttribute("hasAccountant", false);
+            return "user/my-accountant";
+        }
+        
+        AccountantUserRelationship relationship = relationshipOpt.get();
+        User accountant = relationship.getAccountant();
+        
+        // Получаем все рекомендации от бухгалтера
+        List<AccountantRecommendation> recommendations = 
+                accountantRecommendationRepository.findByAccountantAndUser(accountant, currentUser);
+        
+        model.addAttribute("user", currentUser);
+        model.addAttribute("accountant", accountant);
+        model.addAttribute("recommendations", recommendations);
+        model.addAttribute("hasAccountant", true);
+        
+        return "user/my-accountant";
     }
 }
 

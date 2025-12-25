@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Доходы - Expense Tracker</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="dashboard-container">
+  <!-- Sidebar -->
+  <div th:replace="~{user/fragments/sidebar :: sidebar(activePage='incomes')}"></div>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <header class="content-header">
+      <div class="header-left">
+        <h1>Доходы</h1>
+        <p class="welcome-message">Управление вашими доходами</p>
+      </div>
+      <div class="header-right">
+        <button class="btn btn-primary" onclick="showAddIncomeModal()">
+          <i class="fas fa-plus"></i> Добавить доход
+        </button>
+      </div>
+    </header>
+
+    <!-- Success/Error Messages -->
+    <div th:if="${success}" class="alert alert-success" style="margin: 1rem 2rem;">
+      <i class="fas fa-check-circle"></i> <span th:text="${success}"></span>
+    </div>
+    
+    <div th:if="${error}" class="alert alert-error" style="margin: 1rem 2rem;">
+      <i class="fas fa-exclamation-circle"></i> <span th:text="${error}"></span>
+    </div>
+
+    <!-- Incomes List -->
+    <div class="incomes-list" style="margin: 1rem 2rem;">
+      <div class="income-card" th:each="income : ${incomes}" style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 1rem;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+          <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+              <h3 style="margin: 0; color: #2c3e50;" th:text="${income.name}">Доход</h3>
+              <span th:if="${income.type == T(com.expensetracker.entity.Income$IncomeType).ONE_TIME}" 
+                    style="background: #e3f2fd; color: #1976d2; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.875rem;">
+                Одноразовый
+              </span>
+              <span th:if="${income.type == T(com.expensetracker.entity.Income$IncomeType).RECURRING}" 
+                    style="background: #f3e5f5; color: #7b1fa2; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.875rem;">
+                Периодический
+              </span>
+            </div>
+            <div style="margin-top: 0.5rem;">
+              <p style="margin: 0; color: #27ae60; font-size: 1.5rem; font-weight: bold;" 
+                 th:text="${T(com.expensetracker.util.MoneyFormatter).formatWithAbbreviation(income.amount)}">+₽0</p>
+              <p style="margin: 0.5rem 0 0 0; color: #7f8c8d; font-size: 0.9rem;">
+                <i class="fas fa-calendar"></i>
+                <span th:text="${#temporals.format(income.date, 'dd.MM.yyyy')}">Дата</span>
+                <span th:if="${income.type == T(com.expensetracker.entity.Income$IncomeType).RECURRING && income.recurrencePeriod != null}">
+                  · 
+                  <span th:if="${income.recurrencePeriod == T(com.expensetracker.entity.Income$RecurrencePeriod).MONTHLY}">Ежемесячно</span>
+                  <span th:if="${income.recurrencePeriod == T(com.expensetracker.entity.Income$RecurrencePeriod).YEARLY}">Ежегодно</span>
+                </span>
+              </p>
+            </div>
+          </div>
+          <div>
+            <form th:action="@{/user/incomes/{id}/delete(id=${income.id})}" method="post" style="margin: 0;">
+              <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+              <button type="submit" class="btn btn-secondary" onclick="return confirm('Вы уверены, что хотите удалить этот доход?');">
+                <i class="fas fa-trash"></i> Удалить
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div th:unless="${incomes?.size() > 0}" class="empty-state" style="text-align: center; padding: 3rem; background: white; border-radius: 12px; border: 2px dashed #e1e5e9;">
+        <i class="fas fa-money-bill-wave" style="font-size: 3rem; color: #bdc3c7; margin-bottom: 1rem;"></i>
+        <p style="color: #95a5a6; margin-bottom: 1.5rem;">У вас пока нет доходов</p>
+        <button class="btn btn-primary" onclick="showAddIncomeModal()">
+          <i class="fas fa-plus"></i> Добавить доход
+        </button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Add Income Modal -->
+<div class="modal" id="addIncomeModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Добавить доход</h3>
+      <button class="modal-close" onclick="closeAddIncomeModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form id="addIncomeForm" method="post" action="/user/incomes/add" th:action="@{/user/incomes/add}">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <div class="form-group">
+          <label for="incomeName">Название *</label>
+          <input type="text" id="incomeName" name="name" required placeholder="Например: Зарплата, Подарок">
+        </div>
+        <div class="form-group">
+          <label for="incomeAmount">Сумма *</label>
+          <input type="number" id="incomeAmount" name="amount" step="0.01" min="0.01" required>
+        </div>
+        <div class="form-group">
+          <label for="incomeDate">Дата *</label>
+          <input type="date" id="incomeDate" name="date" required>
+        </div>
+        <div class="form-group">
+          <label for="incomeType">Тип дохода *</label>
+          <select id="incomeType" name="type" required onchange="toggleRecurrencePeriod()">
+            <option value="ONE_TIME">Одноразовый</option>
+            <option value="RECURRING">Периодический</option>
+          </select>
+        </div>
+        <div class="form-group" id="recurrencePeriodGroup" style="display: none;">
+          <label for="recurrencePeriod">Период повторения *</label>
+          <select id="recurrencePeriod" name="recurrencePeriod">
+            <option value="MONTHLY">Ежемесячно</option>
+            <option value="YEARLY">Ежегодно</option>
+          </select>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeAddIncomeModal()">
+            Отмена
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Добавить
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  function showAddIncomeModal() {
+    const modal = document.getElementById('addIncomeModal');
+    if (modal) {
+      modal.classList.add('active');
+      const dateInput = document.getElementById('incomeDate');
+      if (dateInput && !dateInput.value) {
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.value = today;
+      }
+      toggleRecurrencePeriod();
+    }
+  }
+
+  function closeAddIncomeModal() {
+    const modal = document.getElementById('addIncomeModal');
+    if (modal) {
+      modal.classList.remove('active');
+      const form = document.getElementById('addIncomeForm');
+      if (form) {
+        form.reset();
+      }
+    }
+  }
+
+  function toggleRecurrencePeriod() {
+    const typeSelect = document.getElementById('incomeType');
+    const periodGroup = document.getElementById('recurrencePeriodGroup');
+    if (typeSelect && periodGroup) {
+      if (typeSelect.value === 'RECURRING') {
+        periodGroup.style.display = 'block';
+        document.getElementById('recurrencePeriod').required = true;
+      } else {
+        periodGroup.style.display = 'none';
+        document.getElementById('recurrencePeriod').required = false;
+      }
+    }
+  }
+
+  window.onclick = function(event) {
+    const modal = document.getElementById('addIncomeModal');
+    if (event.target === modal) {
+      closeAddIncomeModal();
+    }
+  }
+
+  // Set today's date by default
+  document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.getElementById('incomeDate');
+    if (dateInput && !dateInput.value) {
+      const today = new Date().toISOString().split('T')[0];
+      dateInput.value = today;
+    }
+  });
+</script>
+</body>
+</html>
+

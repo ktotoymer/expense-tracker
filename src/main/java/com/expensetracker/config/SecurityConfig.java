@@ -48,6 +48,8 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")  // только для админов
                         .requestMatchers("/accountant/**").hasRole("ACCOUNTANT")  // только для бухгалтеров
+                        .requestMatchers("/user/**").hasRole("USER")  // только для пользователей
+                        .requestMatchers("/api/ai/**").authenticated()  // AI API для аутентифицированных пользователей
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form

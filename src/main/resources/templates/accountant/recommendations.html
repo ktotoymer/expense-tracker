@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Рекомендации - Expense Tracker</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="dashboard-container">
+  <!-- Sidebar -->
+  <div th:replace="~{accountant/fragments/sidebar :: sidebar(activePage='recommendations')}"></div>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <header class="content-header">
+      <div class="header-left">
+        <h1>Рекомендации</h1>
+        <p class="welcome-message">Управление рекомендациями для клиентов</p>
+      </div>
+    </header>
+
+    <!-- Recommendations List -->
+    <div style="margin: 0 2rem 2rem 2rem;">
+      <div th:each="targetUser : ${connectedUsers}" class="card" style="margin-bottom: 2rem;">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+          <h3>
+            <i class="fas fa-user"></i>
+            <span th:text="${targetUser.firstName} + ' ' + ${targetUser.lastName} + ' (' + ${targetUser.username} + ')'">Пользователь</span>
+          </h3>
+          <a th:href="@{/accountant/recommendations/{userId}/create(userId=${targetUser.id})}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Добавить рекомендацию
+          </a>
+        </div>
+        <div class="card-body">
+          <div th:if="${recommendationsByUser.get(targetUser)?.isEmpty()}" class="empty-state">
+            <i class="fas fa-comment-slash"></i>
+            <p>Рекомендаций пока нет</p>
+          </div>
+          <div th:unless="${recommendationsByUser.get(targetUser)?.isEmpty()}">
+            <div th:each="recommendation : ${recommendationsByUser.get(targetUser)}" class="recommendation-item" style="background: #f8f9fa; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; border-left: 4px solid #667eea;">
+              <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                <div>
+                  <small style="color: #6c757d;">
+                    <i class="fas fa-clock"></i>
+                    <span th:text="${#temporals.format(recommendation.createdAt, 'dd.MM.yyyy HH:mm')}">01.01.2024 12:00</span>
+                  </small>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                  <a th:href="@{/accountant/recommendations/{id}/edit(id=${recommendation.id})}" class="btn btn-sm btn-secondary">
+                    <i class="fas fa-edit"></i> Редактировать
+                  </a>
+                  <form th:action="@{/accountant/recommendations/{id}/delete(id=${recommendation.id})}" method="post" style="display: inline;">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Вы уверены, что хотите удалить эту рекомендацию?');">
+                      <i class="fas fa-trash"></i> Удалить
+                    </button>
+                  </form>
+                </div>
+              </div>
+              <div style="white-space: pre-wrap; color: #2c3e50;" th:text="${recommendation.message}">Текст рекомендации</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div th:if="${connectedUsers?.isEmpty()}" class="alert alert-info">
+        <i class="fas fa-info-circle"></i>
+        <span>У вас пока нет связанных пользователей. Найдите пользователей и отправьте им запрос, чтобы начать работать с их финансами.</span>
+        <a href="/accountant/search-users" class="btn btn-primary" style="margin-left: 1rem; display: inline-block;">
+          <i class="fas fa-search"></i> Найти пользователей
+        </a>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
+

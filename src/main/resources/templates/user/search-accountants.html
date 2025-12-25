@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Поиск бухгалтеров - Expense Tracker</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="dashboard-container">
+  <!-- Sidebar -->
+  <div th:replace="~{user/fragments/sidebar :: sidebar(activePage='search-accountants')}"></div>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <header class="content-header">
+      <div class="header-left">
+        <h1>Поиск бухгалтеров</h1>
+        <p class="welcome-message">Найдите бухгалтера, который будет управлять вашими финансами</p>
+      </div>
+    </header>
+
+    <!-- Success/Error Messages -->
+    <div th:if="${success}" class="alert alert-success" style="margin: 1rem 2rem;">
+      <i class="fas fa-check-circle"></i> <span th:text="${success}"></span>
+    </div>
+    
+    <div th:if="${error}" class="alert alert-error" style="margin: 1rem 2rem;">
+      <i class="fas fa-exclamation-circle"></i> <span th:text="${error}"></span>
+    </div>
+
+    <!-- Search Form -->
+    <div style="margin: 1rem 2rem;">
+      <form method="get" action="/user/search-accountants" style="display: flex; gap: 1rem; align-items: flex-end;">
+        <div style="flex: 1;">
+          <label for="search" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Поиск по имени, фамилии, email или username</label>
+          <input type="text" id="search" name="search" th:value="${search}" 
+                 placeholder="Введите имя, фамилию, email или username" 
+                 style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem;">
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-search"></i> Поиск
+        </button>
+      </form>
+    </div>
+
+    <!-- Found Accountants List -->
+    <div style="margin: 1rem 2rem;">
+      <div th:if="${foundAccountants != null && foundAccountants.size() > 0}">
+        <h2 style="margin-bottom: 1rem;">Найденные бухгалтеры</h2>
+        <div style="display: grid; gap: 1rem;">
+          <div th:each="accountant : ${foundAccountants}" 
+               style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h3 style="margin: 0 0 0.5rem 0; color: #2c3e50;" th:text="${accountant.firstName} + ' ' + ${accountant.lastName}">Бухгалтер</h3>
+              <p style="margin: 0.25rem 0; color: #7f8c8d;">
+                <i class="fas fa-envelope"></i> <span th:text="${accountant.email}">email</span>
+              </p>
+              <p style="margin: 0.25rem 0; color: #7f8c8d;">
+                <i class="fas fa-user"></i> <span th:text="${accountant.username}">username</span>
+              </p>
+            </div>
+            <div>
+              <form th:if="${currentAccountantId != accountant.id && !accountantsWithPendingRequests.contains(accountant.id)}" 
+                    th:action="@{/user/requests/send}" method="post" style="display: inline;">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <input type="hidden" name="accountantId" th:value="${accountant.id}"/>
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-paper-plane"></i> Отправить запрос
+                </button>
+              </form>
+              <span th:if="${currentAccountantId == accountant.id}" 
+                    class="btn btn-secondary" style="background: #10b981; color: white; cursor: default;">
+                <i class="fas fa-check"></i> Мой бухгалтер
+              </span>
+              <span th:if="${accountantsWithPendingRequests.contains(accountant.id)}" 
+                    class="btn btn-secondary" style="background: #f59e0b; color: white; cursor: default;">
+                <i class="fas fa-clock"></i> Запрос отправлен
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div th:if="${foundAccountants != null && foundAccountants.size() == 0 && search != null && !search.trim().isEmpty()}" 
+           style="text-align: center; padding: 3rem; background: white; border-radius: 12px; border: 2px dashed #e1e5e9;">
+        <i class="fas fa-search" style="font-size: 3rem; color: #bdc3c7; margin-bottom: 1rem;"></i>
+        <p style="color: #95a5a6;">Бухгалтеры не найдены</p>
+      </div>
+      
+      <div th:if="${foundAccountants == null || (search == null || search.trim().isEmpty())}" 
+           style="text-align: center; padding: 3rem; background: white; border-radius: 12px; border: 2px dashed #e1e5e9;">
+        <i class="fas fa-search" style="font-size: 3rem; color: #bdc3c7; margin-bottom: 1rem;"></i>
+        <p style="color: #95a5a6;">Введите данные для поиска бухгалтеров</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
+

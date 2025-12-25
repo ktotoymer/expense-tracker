@@ -6,86 +6,32 @@
   <title>Отчеты - Expense Tracker</title>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .pie-chart {
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      margin: 2rem auto;
+      position: relative;
+      background: #e0e0e0;
+    }
+    .pie-chart-placeholder {
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      margin: 2rem auto;
+      background: #e0e0e0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #999;
+    }
+  </style>
 </head>
 <body>
 <div class="dashboard-container">
   <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="sidebar-header">
-      <div class="user-info">
-        <div class="user-avatar">
-          <i class="fas fa-user"></i>
-        </div>
-        <div class="user-details">
-          <h3 th:text="${user?.firstName} + ' ' + ${user?.lastName}">Пользователь</h3>
-          <p class="user-role">
-            <i class="fas fa-user-tag"></i>
-            <span th:text="${user?.roles?.get(0)?.name}">USER</span>
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <nav class="sidebar-menu">
-      <ul>
-        <li>
-          <a href="/user/dashboard">
-            <i class="fas fa-tachometer-alt"></i>
-            <span>Панель управления</span>
-          </a>
-        </li>
-        <li>
-          <a href="/user/transactions">
-            <i class="fas fa-exchange-alt"></i>
-            <span>Транзакции</span>
-          </a>
-        </li>
-        <li>
-          <a href="/user/categories">
-            <i class="fas fa-tags"></i>
-            <span>Категории</span>
-          </a>
-        </li>
-        <li>
-          <a href="/user/budgets">
-            <i class="fas fa-wallet"></i>
-            <span>Бюджеты</span>
-          </a>
-        </li>
-        <li>
-          <a href="/user/reports" class="active">
-            <i class="fas fa-chart-bar"></i>
-            <span>Отчеты</span>
-          </a>
-        </li>
-        <li>
-          <a href="/user/settings">
-            <i class="fas fa-cog"></i>
-            <span>Настройки</span>
-          </a>
-        </li>
-        <li>
-          <a href="/user/help">
-            <i class="fas fa-question-circle"></i>
-            <span>Помощь</span>
-          </a>
-        </li>
-      </ul>
-    </nav>
-
-    <div class="sidebar-footer">
-      <form th:action="@{/logout}" method="post" style="margin: 0;">
-        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-        <button type="submit" class="logout-btn" style="background: none; border: none; color: inherit; cursor: pointer; width: 100%; text-align: left; padding: 0.75rem 1rem; display: flex; align-items: center; gap: 0.5rem;">
-          <i class="fas fa-sign-out-alt"></i>
-          <span>Выйти</span>
-        </button>
-      </form>
-        <i class="fas fa-sign-out-alt"></i>
-        <span>Выйти</span>
-      </a>
-    </div>
-  </aside>
+  <div th:replace="~{user/fragments/sidebar :: sidebar(activePage='reports')}"></div>
 
   <!-- Main Content -->
   <main class="main-content">
@@ -111,7 +57,7 @@
         </div>
         <div class="stat-info">
           <h3>Общий доход</h3>
-          <p class="stat-amount" th:text="'₽' + ${#numbers.formatDecimal(totalIncome ?: 0, 0, 'COMMA', 2, 'POINT')}">₽0</p>
+          <p class="stat-amount" th:text="${T(com.expensetracker.util.MoneyFormatter).formatWithAbbreviation(totalIncome ?: T(java.math.BigDecimal).ZERO)}">₽0</p>
         </div>
       </div>
 
@@ -121,7 +67,7 @@
         </div>
         <div class="stat-info">
           <h3>Общий расход</h3>
-          <p class="stat-amount" th:text="'₽' + ${#numbers.formatDecimal(totalExpense ?: 0, 0, 'COMMA', 2, 'POINT')}">₽0</p>
+          <p class="stat-amount" th:text="${T(com.expensetracker.util.MoneyFormatter).formatWithAbbreviation(totalExpense ?: T(java.math.BigDecimal).ZERO)}">₽0</p>
         </div>
       </div>
 
@@ -131,7 +77,7 @@
         </div>
         <div class="stat-info">
           <h3>Баланс</h3>
-          <p class="stat-amount" th:text="'₽' + ${#numbers.formatDecimal((totalIncome ?: 0) - (totalExpense ?: 0), 0, 'COMMA', 2, 'POINT')}">₽0</p>
+          <p class="stat-amount" th:text="${T(com.expensetracker.util.MoneyFormatter).formatWithAbbreviation(balance ?: T(java.math.BigDecimal).ZERO)}">₽0</p>
         </div>
       </div>
 
@@ -152,17 +98,8 @@
         <div class="chart-header">
           <h3>Расходы по категориям</h3>
         </div>
-        <div class="chart-container">
-          <div class="chart-placeholder">
-            <i class="fas fa-chart-pie"></i>
-            <p>Диаграмма расходов по категориям</p>
-            <div style="margin-top: 2rem;">
-              <div th:each="categoryStat : ${categoryStats}" style="margin: 0.5rem 0; padding: 0.5rem; background: #f8f9fa; border-radius: 4px;">
-                <strong th:text="${categoryStat.name}">Категория</strong>
-                <span style="float: right;" th:text="'₽' + ${#numbers.formatDecimal(categoryStat.amount, 0, 'COMMA', 2, 'POINT')}">₽0</span>
-              </div>
-            </div>
-          </div>
+        <div class="chart-container" style="height: auto; min-height: 300px; padding: 2rem;">
+          <th:block th:replace="~{fragments/expense-categories-chart :: expense-categories-chart(chartId='pieChart')}"></th:block>
         </div>
       </div>
 
@@ -198,10 +135,10 @@
               <td>
                 <span class="category-badge" th:style="'background-color: ' + ${categoryStat.color} + ';'" th:text="${categoryStat.name}">Категория</span>
               </td>
-              <td th:text="'₽' + ${#numbers.formatDecimal(categoryStat.amount, 0, 'COMMA', 2, 'POINT')}">₽0</td>
+              <td th:text="${T(com.expensetracker.util.MoneyFormatter).formatWithAbbreviation(categoryStat.amount)}">₽0</td>
               <td>
                 <div class="progress" style="height: 20px;">
-                  <div class="progress-bar" th:style="'width: ' + ${categoryStat.percentage} + '%'" th:text="${categoryStat.percentage} + '%'"></div>
+                  <div class="progress-bar" th:attr="style='width: ' + ${categoryStat.percentage} + '%; background-color: ' + ${categoryStat.color} + ';'" th:text="${categoryStat.percentage} + '%'"></div>
                 </div>
               </td>
             </tr>
@@ -219,6 +156,23 @@
 </div>
 
 <script src="/js/app.js"></script>
+<script th:inline="javascript">
+  // Создание круговой диаграммы
+  document.addEventListener('DOMContentLoaded', function() {
+    const pieChart = document.getElementById('pieChart');
+    if (pieChart) {
+      const stats = /*[[${categoryStats}]]*/ [];
+      if (stats && stats.length > 0) {
+        let angle = 0;
+        const gradientParts = stats.map(function(stat) {
+          const startAngle = angle;
+          angle += (stat.percentage * 360) / 100;
+          return stat.color + ' ' + startAngle + 'deg ' + angle + 'deg';
+        }).join(', ');
+        pieChart.style.background = 'conic-gradient(' + gradientParts + ')';
+      }
+    }
+  });
+</script>
 </body>
 </html>
-

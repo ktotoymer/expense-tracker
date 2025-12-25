@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Расходы - Expense Tracker</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="dashboard-container">
+  <!-- Sidebar -->
+  <div th:replace="~{user/fragments/sidebar :: sidebar(activePage='expenses')}"></div>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <header class="content-header">
+      <div class="header-left">
+        <h1>Расходы</h1>
+        <p class="welcome-message">Управление вашими расходами</p>
+      </div>
+      <div class="header-right">
+        <button class="btn btn-primary" onclick="showAddExpenseModal()">
+          <i class="fas fa-plus"></i> Добавить расход
+        </button>
+      </div>
+    </header>
+
+    <!-- Success/Error Messages -->
+    <div th:if="${success}" class="alert alert-success" style="margin: 1rem 2rem;">
+      <i class="fas fa-check-circle"></i> <span th:text="${success}"></span>
+    </div>
+    
+    <div th:if="${error}" class="alert alert-error" style="margin: 1rem 2rem;">
+      <i class="fas fa-exclamation-circle"></i> <span th:text="${error}"></span>
+    </div>
+
+    <!-- Expenses List -->
+    <div class="expenses-list" style="margin: 1rem 2rem;">
+      <div class="expense-card" th:each="expense : ${expenses}" style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 1rem;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+          <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+              <h3 style="margin: 0; color: #2c3e50;" th:text="${expense.name}">Расход</h3>
+              <span th:if="${expense.type == T(com.expensetracker.entity.Expense$ExpenseType).ONE_TIME}" 
+                    style="background: #e3f2fd; color: #1976d2; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.875rem;">
+                Одноразовый
+              </span>
+              <span th:if="${expense.type == T(com.expensetracker.entity.Expense$ExpenseType).RECURRING}" 
+                    style="background: #f3e5f5; color: #7b1fa2; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.875rem;">
+                Периодический
+              </span>
+            </div>
+            <div style="margin-top: 0.5rem;">
+              <p style="margin: 0; color: #e74c3c; font-size: 1.5rem; font-weight: bold;" 
+                 th:text="${T(com.expensetracker.util.MoneyFormatter).formatWithAbbreviation(expense.amount.negate())}">-₽0</p>
+              <p style="margin: 0.5rem 0 0 0; color: #7f8c8d; font-size: 0.9rem;">
+                <i class="fas fa-calendar"></i>
+                <span th:text="${#temporals.format(expense.date, 'dd.MM.yyyy')}">Дата</span>
+                <span th:if="${expense.type == T(com.expensetracker.entity.Expense$ExpenseType).RECURRING && expense.recurrencePeriod != null}">
+                  · 
+                  <span th:if="${expense.recurrencePeriod == T(com.expensetracker.entity.Expense$RecurrencePeriod).MONTHLY}">Ежемесячно</span>
+                  <span th:if="${expense.recurrencePeriod == T(com.expensetracker.entity.Expense$RecurrencePeriod).YEARLY}">Ежегодно</span>
+                </span>
+              </p>
+              <p th:if="${expense.category != null}" style="margin: 0.5rem 0 0 0; color: #7f8c8d; font-size: 0.9rem;">
+                <i class="fas fa-tag"></i>
+                <span th:text="${expense.category.name}">Категория</span>
+              </p>
+            </div>
+          </div>
+          <div>
+            <form th:action="@{/user/expenses/{id}/delete(id=${expense.id})}" method="post" style="margin: 0;">
+              <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+              <button type="submit" class="btn btn-secondary" onclick="return confirm('Вы уверены, что хотите удалить этот расход?');">
+                <i class="fas fa-trash"></i> Удалить
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div th:unless="${expenses?.size() > 0}" class="empty-state" style="text-align: center; padding: 3rem; background: white; border-radius: 12px; border: 2px dashed #e1e5e9;">
+        <i class="fas fa-arrow-down" style="font-size: 3rem; color: #bdc3c7; margin-bottom: 1rem;"></i>
+        <p style="color: #95a5a6; margin-bottom: 1.5rem;">У вас пока нет расходов</p>
+        <button class="btn btn-primary" onclick="showAddExpenseModal()">
+          <i class="fas fa-plus"></i> Добавить расход
+        </button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Add Expense Modal -->
+<div class="modal" id="addExpenseModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Добавить расход</h3>
+      <button class="modal-close" onclick="closeAddExpenseModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form id="addExpenseForm" method="post" action="/user/expenses/add" th:action="@{/user/expenses/add}">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <div class="form-group">
+          <label for="expenseName">Название *</label>
+          <input type="text" id="expenseName" name="name" required placeholder="Например: Продукты, Интернет">
+        </div>
+        <div class="form-group">
+          <label for="expenseAmount">Сумма *</label>
+          <input type="number" id="expenseAmount" name="amount" step="0.01" min="0.01" required>
+        </div>
+        <div class="form-group">
+          <label for="expenseDate">Дата *</label>
+          <input type="date" id="expenseDate" name="date" required>
+        </div>
+        <div class="form-group">
+          <label for="expenseCategory">Категория</label>
+          <select id="expenseCategory" name="categoryId">
+            <option value="">Без категории</option>
+            <option th:each="category : ${categories}" th:value="${category.id}" th:text="${category.name}"></option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="expenseType">Тип расхода *</label>
+          <select id="expenseType" name="type" required onchange="toggleRecurrencePeriod()">
+            <option value="ONE_TIME">Одноразовый</option>
+            <option value="RECURRING">Периодический</option>
+          </select>
+        </div>
+        <div class="form-group" id="recurrencePeriodGroup" style="display: none;">
+          <label for="recurrencePeriod">Период повторения *</label>
+          <select id="recurrencePeriod" name="recurrencePeriod">
+            <option value="MONTHLY">Ежемесячно</option>
+            <option value="YEARLY">Ежегодно</option>
+          </select>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeAddExpenseModal()">
+            Отмена
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Добавить
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  function showAddExpenseModal() {
+    const modal = document.getElementById('addExpenseModal');
+    if (modal) {
+      modal.classList.add('active');
+      const dateInput = document.getElementById('expenseDate');
+      if (dateInput && !dateInput.value) {
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.value = today;
+      }
+      toggleRecurrencePeriod();
+    }
+  }
+
+  function closeAddExpenseModal() {
+    const modal = document.getElementById('addExpenseModal');
+    if (modal) {
+      modal.classList.remove('active');
+      const form = document.getElementById('addExpenseForm');
+      if (form) {
+        form.reset();
+      }
+    }
+  }
+
+  function toggleRecurrencePeriod() {
+    const typeSelect = document.getElementById('expenseType');
+    const periodGroup = document.getElementById('recurrencePeriodGroup');
+    if (typeSelect && periodGroup) {
+      if (typeSelect.value === 'RECURRING') {
+        periodGroup.style.display = 'block';
+        document.getElementById('recurrencePeriod').required = true;
+      } else {
+        periodGroup.style.display = 'none';
+        document.getElementById('recurrencePeriod').required = false;
+      }
+    }
+  }
+
+  window.onclick = function(event) {
+    const modal = document.getElementById('addExpenseModal');
+    if (event.target === modal) {
+      closeAddExpenseModal();
+    }
+  }
+
+  // Set today's date by default
+  document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.getElementById('expenseDate');
+    if (dateInput && !dateInput.value) {
+      const today = new Date().toISOString().split('T')[0];
+      dateInput.value = today;
+    }
+  });
+</script>
+</body>
+</html>
+
