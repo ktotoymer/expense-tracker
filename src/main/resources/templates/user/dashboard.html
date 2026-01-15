@@ -111,17 +111,17 @@
       <div class="chart-card">
         <div class="chart-header">
           <h3>Динамика расходов</h3>
-          <select class="period-select">
-            <option>За месяц</option>
-            <option>За 3 месяца</option>
-            <option>За год</option>
+          <select class="period-select" id="expenseDynamicsPeriod" onchange="changeExpenseDynamicsPeriod(this.value)">
+            <option value="31">За месяц</option>
+            <option value="93">За 3 месяца</option>
+            <option value="365">За год</option>
           </select>
         </div>
-        <div class="chart-container">
-          <!-- Здесь будет график -->
-          <div class="chart-placeholder">
-            <i class="fas fa-chart-line"></i>
-            <p>График динамики расходов</p>
+        <div class="chart-container" id="expenseDynamicsChart" style="height: 300px; position: relative;">
+          <canvas id="expenseDynamicsCanvas" style="width: 100%; height: 100%;"></canvas>
+          <div class="chart-placeholder" id="expenseDynamicsPlaceholder" style="display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+            <i class="fas fa-chart-line" style="font-size: 3rem; margin-bottom: 1rem; color: #bdc3c7;"></i>
+            <p style="color: #95a5a6;">Нет данных для отображения</p>
           </div>
         </div>
       </div>
@@ -236,10 +236,15 @@
             <i class="fas fa-robot"></i>
           </div>
           <div class="tip-content">
-            <h4>ИИ‑анализ ваших трат</h4>
-            <p>Получите персональные рекомендации по оптимизации расходов за последний месяц.</p>
-            <button type="button" class="btn btn-primary" id="aiAnalyzeButton">
-              <i class="fas fa-magic"></i> Проанализировать траты
+            <h4>ИИ‑анализ финансов</h4>
+            <p>Получите персональные рекомендации по вашим финансам за последний месяц.</p>
+            <select id="aiAnalysisType" style="width: 100%; margin-bottom: 0.5rem; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+              <option value="expenses">Анализ расходов</option>
+              <option value="income">Анализ доходов</option>
+              <option value="financial">Общий анализ</option>
+            </select>
+            <button type="button" class="btn btn-primary" id="aiAnalyzeButton" style="width: 100%;">
+              <i class="fas fa-magic"></i> Проанализировать
             </button>
             <div id="aiAnalysisResult" class="ai-analysis-result" style="margin-top: 0.75rem; font-size: 0.9rem; line-height: 1.5;"></div>
           </div>
@@ -270,13 +275,21 @@
     // Init AI analysis button
     const aiButton = document.getElementById('aiAnalyzeButton');
     const aiResult = document.getElementById('aiAnalysisResult');
-    if (aiButton && aiResult) {
+    const aiAnalysisType = document.getElementById('aiAnalysisType');
+    if (aiButton && aiResult && aiAnalysisType) {
       aiButton.addEventListener('click', function () {
+        const analysisType = aiAnalysisType.value;
         aiButton.disabled = true;
         aiButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Анализируем...';
         aiResult.textContent = '';
 
-        fetch('/user/ai-analysis')
+        const typeLabels = {
+          'expenses': 'расходы',
+          'income': 'доходы',
+          'financial': 'финансы'
+        };
+
+        fetch('/user/ai-analysis?type=' + analysisType)
           .then(function (response) {
             if (!response.ok) {
               throw new Error('Ошибка HTTP ' + response.status);
@@ -293,11 +306,123 @@
           })
           .finally(function () {
             aiButton.disabled = false;
-            aiButton.innerHTML = '<i class="fas fa-magic"></i> Проанализировать траты';
+            aiButton.innerHTML = '<i class="fas fa-magic"></i> Проанализировать';
           });
       });
     }
+
+    // Загрузка и отображение графика динамики расходов
+    loadExpenseDynamicsChart(31);
   });
+
+  function changeExpenseDynamicsPeriod(days) {
+    loadExpenseDynamicsChart(parseInt(days));
+  }
+
+  function loadExpenseDynamicsChart(days) {
+    fetch('/user/expense-dynamics?days=' + days)
+      .then(response => response.json())
+      .then(data => {
+        const canvas = document.getElementById('expenseDynamicsCanvas');
+        const placeholder = document.getElementById('expenseDynamicsPlaceholder');
+        
+        if (!data.data || data.data.length === 0 || data.data.every(d => d.amount === 0)) {
+          canvas.style.display = 'none';
+          placeholder.style.display = 'flex';
+          return;
+        }
+        
+        canvas.style.display = 'block';
+        placeholder.style.display = 'none';
+        drawExpenseChart(canvas, data.data);
+      })
+      .catch(error => {
+        console.error('Ошибка загрузки данных графика:', error);
+        const canvas = document.getElementById('expenseDynamicsCanvas');
+        const placeholder = document.getElementById('expenseDynamicsPlaceholder');
+        canvas.style.display = 'none';
+        placeholder.style.display = 'flex';
+      });
+  }
+
+  function drawExpenseChart(canvas, data) {
+    const ctx = canvas.getContext('2d');
+    const width = canvas.offsetWidth;
+    const height = canvas.offsetHeight;
+    canvas.width = width;
+    canvas.height = height;
+
+    // Очистка canvas
+    ctx.clearRect(0, 0, width, height);
+
+    if (data.length === 0) return;
+
+    // Находим максимальное значение для масштабирования
+    const maxAmount = Math.max(...data.map(d => d.amount), 1);
+    const padding = 40;
+    const chartWidth = width - padding * 2;
+    const chartHeight = height - padding * 2;
+
+    // Рисуем оси
+    ctx.strokeStyle = '#ddd';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padding, padding);
+    ctx.lineTo(padding, height - padding);
+    ctx.lineTo(width - padding, height - padding);
+    ctx.stroke();
+
+    // Рисуем линию графика
+    ctx.strokeStyle = '#667eea';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+
+    data.forEach((point, index) => {
+      const x = padding + (index / (data.length - 1 || 1)) * chartWidth;
+      const y = height - padding - (point.amount / maxAmount) * chartHeight;
+      
+      if (index === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    });
+
+    ctx.stroke();
+
+    // Рисуем точки
+    ctx.fillStyle = '#667eea';
+    data.forEach((point, index) => {
+      const x = padding + (index / (data.length - 1 || 1)) * chartWidth;
+      const y = height - padding - (point.amount / maxAmount) * chartHeight;
+      
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // Подписи осей
+    ctx.fillStyle = '#666';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    
+    // Подписи дат на оси X (показываем каждую 5-ю дату или чаще)
+    const step = Math.max(1, Math.floor(data.length / 8));
+    for (let i = 0; i < data.length; i += step) {
+      const x = padding + (i / (data.length - 1 || 1)) * chartWidth;
+      const date = new Date(data[i].date);
+      const dateStr = date.getDate() + '.' + (date.getMonth() + 1);
+      ctx.fillText(dateStr, x, height - padding + 20);
+    }
+
+    // Подписи значений на оси Y
+    ctx.textAlign = 'right';
+    for (let i = 0; i <= 5; i++) {
+      const value = (maxAmount / 5) * i;
+      const y = height - padding - (i / 5) * chartHeight;
+      ctx.fillText(Math.round(value).toLocaleString('ru-RU'), padding - 10, y + 4);
+    }
+  }
 </script>
 </body>
 </html>

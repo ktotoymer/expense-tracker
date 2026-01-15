@@ -59,7 +59,7 @@
               <a th:href="@{/admin/users/{id}(id=${targetUser.id})}" class="btn-icon" title="Просмотр">
                 <i class="fas fa-eye"></i>
               </a>
-              <form th:if="${targetUser.id != user.id}" 
+              <form th:if="${targetUser.id != user.id and targetUser.roles.?[name == 'ROLE_ADMIN'].isEmpty()}" 
                     th:action="@{/admin/users/{id}/delete(id=${targetUser.id})}" 
                     method="post" 
                     style="display: inline;">

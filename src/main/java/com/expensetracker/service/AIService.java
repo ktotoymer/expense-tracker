@@ -24,14 +24,18 @@ public class AIService {
     private final ObjectMapper mapper;
     private final HttpClient client;
 
-    public AIService(@Value("${OPEN_API_KEY}") String apiKey,
-                     @Value("${OPENROUTER_API_BASE}") String apiBase) {
+    public AIService(@Value("${OPEN_API_KEY:}") String apiKey,
+                     @Value("${OPENROUTER_API_BASE:https://openrouter.ai/api/v1}") String apiBase) {
         this.apiKey = apiKey;
         this.apiBase = apiBase;
         this.mapper = new ObjectMapper();
         this.client = HttpClient.newHttpClient();
         
-        logger.info("AIService initialized with API base: {}", apiBase);
+        if (apiKey == null || apiKey.trim().isEmpty()) {
+            logger.error("OPEN_API_KEY is not configured! AI service will not work.");
+        } else {
+            logger.info("AIService initialized with API base: {}", apiBase);
+        }
     }
 
     // Рекомендации по оптимизации расходов
@@ -55,6 +59,57 @@ public class AIService {
                 Запрос пользователя:
                 """ +
                 expensesData
+                , 300);
+    }
+
+    // Анализ доходов
+    public String analyzeIncome(String incomeData) throws Exception {
+        return sendMessage("""
+                Ты — финансовый консультант и эксперт по управлению личными финансами.
+                
+                Твоя задача — проанализировать информацию о доходах пользователя и дать персональные рекомендации по их оптимизации и увеличению.
+                
+                Правила:
+                1. Используй только обычный текст, без списков, спецсимволов и форматирования.
+                2. Максимальная длина ответа — 500 символов.
+                3. Ответ должен быть связным и полезным.
+                4. Не упоминай правила и не объясняй свои действия.
+                
+                Если запрос пользователя явно не связан с финансами, доходами или управлением бюджетом,
+                выведи строго следующий текст:
+                
+                ЗДЕСЬ Я НЕ МОГУ ВАМ ПОМОЧЬ
+                
+                Запрос пользователя:
+                """ +
+                incomeData
+                , 300);
+    }
+
+    // Общий финансовый анализ (доходы + расходы)
+    public String analyzeFinancialSituation(String financialData) throws Exception {
+        return sendMessage("""
+                Ты — финансовый аналитик и консультант по управлению личными финансами.
+
+                Твоя задача — проанализировать полную финансовую картину пользователя (доходы и расходы) и дать комплексные рекомендации по улучшению финансового положения.
+
+                Правила:
+                1. Используй ТОЛЬКО обычный текст (без списков, эмодзи, спецсимволов, форматирования).
+                2. Максимальная длина ответа — 500 символов.
+                3. Ответ должен быть кратким, понятным и по существу.
+                4. Не упоминай правила и не объясняй ход рассуждений.
+        
+                Если запрос пользователя:
+                — не связан с финансами, доходами, расходами или бюджетом
+                — или не содержит достаточной информации для анализа
+                — или не позволяет сделать финансовый анализ
+        
+                ТОГДА выведи РОВНО следующий текст (без изменений):
+        
+                ЗДЕСЬ Я НЕ МОГУ ВАМ ПОМОЧЬ
+        
+                Запрос пользователя:""" +
+                " Проанализируй финансовые данные " + financialData + " и дай комплексные рекомендации по улучшению финансового положения"
                 , 300);
     }
 
@@ -88,6 +143,12 @@ public class AIService {
     // Метод отправки запроса на DeepSeek через OpenRouter
     private String sendMessage(String content, int maxTokens) throws Exception {
         try {
+            // Проверка наличия API ключа
+            if (apiKey == null || apiKey.trim().isEmpty()) {
+                logger.error("OPEN_API_KEY is not configured");
+                throw new RuntimeException("Сервис ИИ не настроен. Обратитесь к администратору.");
+            }
+
             Map<String, Object> payload = Map.of(
                     "model", "deepseek/deepseek-v3.2",
                     "messages", List.of(Map.of("role", "user", "content", content)),
@@ -109,6 +170,7 @@ public class AIService {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
             logger.debug("OpenRouter response status: {}", response.statusCode());
+            logger.debug("OpenRouter response body: {}", response.body());
 
             if (response.statusCode() != 200) {
                 logger.error("OpenRouter API error. Status: {}, Body: {}", response.statusCode(), response.body());
@@ -117,7 +179,8 @@ public class AIService {
                 if (response.statusCode() == 403) {
                     throw new RuntimeException("Сервис ИИ недоступен в вашем регионе. Пожалуйста, попробуйте позже или обратитесь к администратору.");
                 } else if (response.statusCode() == 401) {
-                    throw new RuntimeException("Ошибка авторизации. Обратитесь к администратору.");
+                    logger.error("OpenRouter API authentication failed. Check if API key is valid and not expired.");
+                    throw new RuntimeException("Ошибка авторизации. API ключ недействителен или истек. Обратитесь к администратору.");
                 } else if (response.statusCode() >= 500) {
                     throw new RuntimeException("Временная недоступность сервиса ИИ. Попробуйте позже.");
                 } else {

@@ -178,8 +178,19 @@ public class AdminController {
             }
 
             User currentUser = getCurrentUser();
-            if (userOpt.get().getId().equals(currentUser.getId())) {
+            User targetUser = userOpt.get();
+            
+            if (targetUser.getId().equals(currentUser.getId())) {
                 redirectAttributes.addFlashAttribute("error", "Вы не можете удалить самого себя!");
+                return "redirect:/admin/users";
+            }
+
+            // Проверка, является ли удаляемый пользователь администратором
+            boolean isTargetAdmin = targetUser.getRoles().stream()
+                    .anyMatch(role -> "ROLE_ADMIN".equals(role.getName()));
+            
+            if (isTargetAdmin) {
+                redirectAttributes.addFlashAttribute("error", "Вы не можете удалить другого администратора!");
                 return "redirect:/admin/users";
             }
 
@@ -228,7 +239,10 @@ public class AdminController {
             Category category = new Category();
             category.setName(name);
             category.setDescription(description);
-            category.setColor(color != null && !color.isEmpty() ? color : "#667eea");
+            // Используем указанный цвет или генерируем уникальный на основе имени
+            category.setColor(color != null && !color.isEmpty() 
+                    ? color 
+                    : com.expensetracker.util.ColorGenerator.generateColorForCategory(name));
             category.setUser(userOpt.get());
 
             categoryRepository.save(category);
@@ -262,9 +276,10 @@ public class AdminController {
             Category category = categoryOpt.get();
             category.setName(name);
             category.setDescription(description);
-            if (color != null && !color.isEmpty()) {
-                category.setColor(color);
-            }
+            // Используем указанный цвет или генерируем уникальный на основе имени
+            category.setColor(color != null && !color.isEmpty() 
+                    ? color 
+                    : com.expensetracker.util.ColorGenerator.generateColorForCategory(name));
             category.setUser(userOpt.get());
 
             categoryRepository.save(category);
@@ -368,13 +383,13 @@ public class AdminController {
         LocalDate startDate;
         LocalDate endDate = LocalDate.now();
 
+        // Используем последние N дней вместо начала периода
         if (period == null || period.equals("month")) {
-            startDate = LocalDate.now().withDayOfMonth(1);
+            startDate = endDate.minusDays(30); // Последние 31 день
         } else if (period.equals("quarter")) {
-            int quarter = (LocalDate.now().getMonthValue() - 1) / 3;
-            startDate = LocalDate.now().withMonth(quarter * 3 + 1).withDayOfMonth(1);
+            startDate = endDate.minusDays(92); // Последние 93 дня
         } else { // year
-            startDate = LocalDate.now().withDayOfYear(1);
+            startDate = endDate.minusDays(364); // Последние 365 дней
         }
 
         // Общая статистика по всем пользователям
@@ -439,6 +454,25 @@ public class AdminController {
                 .sorted((a, b) -> b.amount.compareTo(a.amount))
                 .collect(Collectors.toList());
 
+        // Гарантируем уникальные цвета для всех категорий на графике
+        List<String> categoryNames = categoryStats.stream()
+                .map(CategoryStat::getName)
+                .collect(Collectors.toList());
+        List<String> existingColors = categoryStats.stream()
+                .map(CategoryStat::getColor)
+                .collect(Collectors.toList());
+        
+        java.util.Map<String, String> uniqueColorMap = 
+                com.expensetracker.util.ColorGenerator.ensureUniqueColors(categoryNames, existingColors);
+        
+        // Обновляем цвета в categoryStats
+        for (CategoryStat stat : categoryStats) {
+            String uniqueColor = uniqueColorMap.get(stat.getName());
+            if (uniqueColor != null) {
+                stat.setColor(uniqueColor);
+            }
+        }
+
         model.addAttribute("user", currentUser);
         model.addAttribute("totalIncome", totalIncome);
         model.addAttribute("totalExpense", totalExpense);
@@ -465,6 +499,7 @@ public class AdminController {
 
         public String getName() { return name; }
         public String getColor() { return color; }
+        public void setColor(String color) { this.color = color; }
         public BigDecimal getAmount() { return amount; }
         public int getPercentage() { return percentage; }
     }

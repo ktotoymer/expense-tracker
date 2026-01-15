@@ -5,6 +5,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -39,6 +40,8 @@ import com.expensetracker.repository.ExpenseRepository;
 import com.expensetracker.repository.IncomeRepository;
 import com.expensetracker.repository.UserRepository;
 import com.expensetracker.service.AiExpenseAnalysisService;
+import com.expensetracker.service.AiFinancialAnalysisService;
+import com.expensetracker.service.AiIncomeAnalysisService;
 import com.expensetracker.service.StatisticsService;
 
 @Controller
@@ -52,6 +55,8 @@ public class UserController {
     private final ExpenseRepository expenseRepository;
     private final PasswordEncoder passwordEncoder;
     private final AiExpenseAnalysisService aiExpenseAnalysisService;
+    private final AiIncomeAnalysisService aiIncomeAnalysisService;
+    private final AiFinancialAnalysisService aiFinancialAnalysisService;
     private final StatisticsService statisticsService;
 
     private final AccountantRequestRepository accountantRequestRepository;
@@ -64,6 +69,8 @@ public class UserController {
                           ExpenseRepository expenseRepository,
                           PasswordEncoder passwordEncoder,
                           AiExpenseAnalysisService aiExpenseAnalysisService,
+                          AiIncomeAnalysisService aiIncomeAnalysisService,
+                          AiFinancialAnalysisService aiFinancialAnalysisService,
                           StatisticsService statisticsService,
                           AccountantRequestRepository accountantRequestRepository,
                           AccountantUserRelationshipRepository accountantUserRelationshipRepository,
@@ -74,6 +81,8 @@ public class UserController {
         this.expenseRepository = expenseRepository;
         this.passwordEncoder = passwordEncoder;
         this.aiExpenseAnalysisService = aiExpenseAnalysisService;
+        this.aiIncomeAnalysisService = aiIncomeAnalysisService;
+        this.aiFinancialAnalysisService = aiFinancialAnalysisService;
         this.statisticsService = statisticsService;
         this.accountantRequestRepository = accountantRequestRepository;
         this.accountantUserRelationshipRepository = accountantUserRelationshipRepository;
@@ -90,14 +99,15 @@ public class UserController {
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
         User user = getCurrentUser();
-        LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
-        LocalDate endOfMonth = LocalDate.now().withDayOfMonth(LocalDate.now().lengthOfMonth());
+        // Используем последние 31 день вместо текущего месяца
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(30); // 31 день включая сегодня
 
-        // Доходы за текущий месяц
-        BigDecimal incomeTotal = statisticsService.calculateTotalIncome(user, startOfMonth);
+        // Доходы за последние 31 день
+        BigDecimal incomeTotal = statisticsService.calculateTotalIncome(user, startDate);
         
-        // Расходы за текущий месяц
-        BigDecimal expenseTotal = statisticsService.calculateTotalExpense(user, startOfMonth);
+        // Расходы за последние 31 день
+        BigDecimal expenseTotal = statisticsService.calculateTotalExpense(user, startDate);
 
         // Баланс за все время
         BigDecimal balance = statisticsService.calculateTotalBalance(user);
@@ -110,7 +120,7 @@ public class UserController {
 
         // Статистика по категориям для диаграммы (топ-4 + остальные)
         List<StatisticsService.CategoryStatistics> categoryStatsList = 
-                statisticsService.calculateCategoryStatisticsWithPercentages(user, startOfMonth, endOfMonth);
+                statisticsService.calculateCategoryStatisticsWithPercentages(user, startDate, endDate);
         
         // Сортируем по сумме (убывание) и берем топ-4
         List<StatisticsService.CategoryStatistics> sortedStats = categoryStatsList.stream()
@@ -153,6 +163,25 @@ public class UserController {
             otherStat.setAmount(otherAmount);
             otherStat.setPercentage(otherPercentage);
             categoryStats.add(otherStat);
+        }
+        
+        // Гарантируем уникальные цвета для всех категорий на графике
+        List<String> categoryNames = categoryStats.stream()
+                .map(CategoryStat::getName)
+                .collect(Collectors.toList());
+        List<String> existingColors = categoryStats.stream()
+                .map(CategoryStat::getColor)
+                .collect(Collectors.toList());
+        
+        java.util.Map<String, String> uniqueColorMap = 
+                com.expensetracker.util.ColorGenerator.ensureUniqueColors(categoryNames, existingColors);
+        
+        // Обновляем цвета в categoryStats
+        for (CategoryStat stat : categoryStats) {
+            String uniqueColor = uniqueColorMap.get(stat.getName());
+            if (uniqueColor != null) {
+                stat.setColor(uniqueColor);
+            }
         }
 
         model.addAttribute("user", user);
@@ -274,7 +303,10 @@ public class UserController {
         Category category = new Category();
         category.setName(name);
         category.setDescription(description);
-        category.setColor(color != null && !color.isEmpty() ? color : "#667eea");
+        // Используем указанный цвет или генерируем уникальный на основе имени
+        category.setColor(color != null && !color.isEmpty() 
+                ? color 
+                : com.expensetracker.util.ColorGenerator.generateColorForCategory(name));
         category.setUser(user);
 
         categoryRepository.save(category);
@@ -381,21 +413,22 @@ public class UserController {
     @GetMapping("/reports")
     public String reports(Model model) {
         User user = getCurrentUser();
-        LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
-        LocalDate endOfMonth = LocalDate.now().withDayOfMonth(LocalDate.now().lengthOfMonth());
+        // Используем последние 31 день вместо текущего месяца
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(30); // 31 день включая сегодня
 
-        // Доходы за текущий месяц
-        BigDecimal totalIncome = statisticsService.calculateTotalIncome(user, startOfMonth);
+        // Доходы за последние 31 день
+        BigDecimal totalIncome = statisticsService.calculateTotalIncome(user, startDate);
 
-        // Расходы за текущий месяц
-        BigDecimal totalExpense = statisticsService.calculateTotalExpense(user, startOfMonth);
+        // Расходы за последние 31 день
+        BigDecimal totalExpense = statisticsService.calculateTotalExpense(user, startDate);
 
         // Баланс за все время
         BigDecimal balance = statisticsService.calculateTotalBalance(user);
 
         // Используем StatisticsService для расчета статистики по категориям
         List<StatisticsService.CategoryStatistics> categoryStatsList = 
-                statisticsService.calculateCategoryStatisticsWithPercentages(user, startOfMonth, endOfMonth);
+                statisticsService.calculateCategoryStatisticsWithPercentages(user, startDate, endDate);
 
         // Конвертируем в CategoryStat для совместимости с представлением
         List<CategoryStat> categoryStats = categoryStatsList.stream()
@@ -406,10 +439,29 @@ public class UserController {
                     return categoryStat;
                 })
                 .collect(Collectors.toList());
+        
+        // Гарантируем уникальные цвета для всех категорий на графике
+        List<String> categoryNames = categoryStats.stream()
+                .map(CategoryStat::getName)
+                .collect(Collectors.toList());
+        List<String> existingColors = categoryStats.stream()
+                .map(CategoryStat::getColor)
+                .collect(Collectors.toList());
+        
+        java.util.Map<String, String> uniqueColorMap = 
+                com.expensetracker.util.ColorGenerator.ensureUniqueColors(categoryNames, existingColors);
+        
+        // Обновляем цвета в categoryStats
+        for (CategoryStat stat : categoryStats) {
+            String uniqueColor = uniqueColorMap.get(stat.getName());
+            if (uniqueColor != null) {
+                stat.setColor(uniqueColor);
+            }
+        }
 
         // Получаем общее количество элементов (доходы + расходы) за период
-        List<Income> incomesInPeriod = incomeRepository.findByUserAndDateBetween(user, startOfMonth, endOfMonth);
-        List<Expense> expensesInPeriod = expenseRepository.findByUserAndDateBetween(user, startOfMonth, endOfMonth);
+        List<Income> incomesInPeriod = incomeRepository.findByUserAndDateBetween(user, startDate, endDate);
+        List<Expense> expensesInPeriod = expenseRepository.findByUserAndDateBetween(user, startDate, endDate);
         long totalItems = incomesInPeriod.size() + expensesInPeriod.size();
 
         model.addAttribute("user", user);
@@ -418,8 +470,8 @@ public class UserController {
         model.addAttribute("balance", balance);
         model.addAttribute("totalTransactions", totalItems);
         model.addAttribute("categoryStats", categoryStats);
-        model.addAttribute("startDate", startOfMonth);
-        model.addAttribute("endDate", endOfMonth);
+        model.addAttribute("startDate", startDate);
+        model.addAttribute("endDate", endDate);
         return "user/reports";
     }
 
@@ -484,11 +536,70 @@ public class UserController {
 
     @GetMapping("/ai-analysis")
     @ResponseBody
-    public Map<String, String> aiAnalysis() {
+    public Map<String, String> aiAnalysis(@RequestParam(required = false, defaultValue = "expenses") String type) {
         User user = getCurrentUser();
-        String text = aiExpenseAnalysisService.analyzeLastMonth(user);
+        String text;
+        
+        switch (type.toLowerCase()) {
+            case "income":
+            case "incomes":
+                text = aiIncomeAnalysisService.analyzeLastMonth(user);
+                break;
+            case "financial":
+            case "overall":
+                text = aiFinancialAnalysisService.analyzeLastMonth(user);
+                break;
+            case "expense":
+            case "expenses":
+            default:
+                text = aiExpenseAnalysisService.analyzeLastMonth(user);
+                break;
+        }
+        
         Map<String, String> result = new HashMap<>();
         result.put("recommendations", text);
+        result.put("type", type);
+        return result;
+    }
+
+    @GetMapping("/expense-dynamics")
+    @ResponseBody
+    public Map<String, Object> getExpenseDynamics(@RequestParam(required = false, defaultValue = "31") int days) {
+        User user = getCurrentUser();
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(days - 1); // Включая сегодня
+        
+        List<Expense> expenses = expenseRepository.findByUserAndDateBetween(user, startDate, endDate);
+        
+        // Группируем расходы по датам
+        Map<LocalDate, BigDecimal> dailyExpenses = new LinkedHashMap<>();
+        
+        // Инициализируем все даты в периоде нулями
+        for (int i = 0; i < days; i++) {
+            LocalDate date = startDate.plusDays(i);
+            dailyExpenses.put(date, BigDecimal.ZERO);
+        }
+        
+        // Заполняем реальными данными
+        for (Expense expense : expenses) {
+            LocalDate date = expense.getDate();
+            dailyExpenses.put(date, dailyExpenses.get(date).add(expense.getAmount()));
+        }
+        
+        // Формируем данные для графика
+        List<Map<String, Object>> chartData = new ArrayList<>();
+        for (Map.Entry<LocalDate, BigDecimal> entry : dailyExpenses.entrySet()) {
+            Map<String, Object> dayData = new HashMap<>();
+            dayData.put("date", entry.getKey().toString());
+            dayData.put("amount", entry.getValue().doubleValue());
+            chartData.add(dayData);
+        }
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("data", chartData);
+        result.put("startDate", startDate.toString());
+        result.put("endDate", endDate.toString());
+        
         return result;
     }
 

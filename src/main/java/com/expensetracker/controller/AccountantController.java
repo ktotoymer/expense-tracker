@@ -240,13 +240,13 @@ public class AccountantController {
         LocalDate startDate;
         LocalDate endDate = LocalDate.now();
 
+        // Используем последние N дней вместо начала периода
         if (period == null || period.equals("month")) {
-            startDate = LocalDate.now().withDayOfMonth(1);
+            startDate = endDate.minusDays(30); // Последние 31 день
         } else if (period.equals("quarter")) {
-            int quarter = (LocalDate.now().getMonthValue() - 1) / 3;
-            startDate = LocalDate.now().withMonth(quarter * 3 + 1).withDayOfMonth(1);
+            startDate = endDate.minusDays(92); // Последние 93 дня
         } else { // year
-            startDate = LocalDate.now().withDayOfYear(1);
+            startDate = endDate.minusDays(364); // Последние 365 дней
         }
 
         // Получаем только связанных пользователей
@@ -328,6 +328,25 @@ public class AccountantController {
                     return categoryStat;
                 })
                 .collect(Collectors.toList());
+
+        // Гарантируем уникальные цвета для всех категорий на графике
+        List<String> categoryNames = categoryStats.stream()
+                .map(CategoryStat::getName)
+                .collect(Collectors.toList());
+        List<String> existingColors = categoryStats.stream()
+                .map(CategoryStat::getColor)
+                .collect(Collectors.toList());
+        
+        java.util.Map<String, String> uniqueColorMap = 
+                com.expensetracker.util.ColorGenerator.ensureUniqueColors(categoryNames, existingColors);
+        
+        // Обновляем цвета в categoryStats
+        for (CategoryStat stat : categoryStats) {
+            String uniqueColor = uniqueColorMap.get(stat.getName());
+            if (uniqueColor != null) {
+                stat.setColor(uniqueColor);
+            }
+        }
 
         model.addAttribute("user", currentUser);
         model.addAttribute("allUsers", allUsers);
@@ -421,6 +440,7 @@ public class AccountantController {
 
         public String getName() { return name; }
         public String getColor() { return color; }
+        public void setColor(String color) { this.color = color; }
         public BigDecimal getAmount() { return amount; }
         public int getPercentage() { return percentage; }
     }
