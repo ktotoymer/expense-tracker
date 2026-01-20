@@ -20,8 +20,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.ui.Model;
 
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -88,50 +86,40 @@ class AuthControllerTest {
         savedUser.setRoles(Collections.singletonList(userRole));
     }
 
+    private jakarta.servlet.http.HttpServletRequest createMockRequest() {
+        jakarta.servlet.http.HttpServletRequest request = mock(jakarta.servlet.http.HttpServletRequest.class);
+        when(request.getParameter("g-recaptcha-response")).thenReturn("test-recaptcha-response");
+        return request;
+    }
+
     @Test
     void testRegisterPage() {
-        Map<String, String> captcha = new HashMap<>();
-        captcha.put("id", "test-id");
-        captcha.put("question", "2 + 3 = ?");
-
-        when(captchaService.generateCaptcha()).thenReturn(captcha);
-
         String viewName = authController.registerPage(model);
 
         assertEquals("register", viewName);
-        verify(captchaService).generateCaptcha();
-        verify(model).addAttribute("captchaId", "test-id");
-        verify(model).addAttribute("captchaQuestion", "2 + 3 = ?");
+        verify(captchaService, never()).verifyRecaptcha(anyString());
     }
 
     @Test
     void testRegisterWithInvalidCaptcha() {
-        Map<String, String> captcha = new HashMap<>();
-        captcha.put("id", "new-id");
-        captcha.put("question", "2 + 3 = ?");
+        jakarta.servlet.http.HttpServletRequest request = createMockRequest();
+        when(captchaService.verifyRecaptcha("test-recaptcha-response")).thenReturn(false);
 
-        when(captchaService.validateCaptcha("captcha-id", "5")).thenReturn(false);
-        when(captchaService.generateCaptcha()).thenReturn(captcha);
-
-        String viewName = authController.register(registerDto, model);
+        String viewName = authController.register(registerDto, model, request);
 
         assertEquals("register", viewName);
-        verify(captchaService).validateCaptcha("captcha-id", "5");
-        verify(model).addAttribute(eq("error"), anyString());
+        verify(captchaService).verifyRecaptcha("test-recaptcha-response");
+        verify(model).addAttribute(eq("error"), eq("Подтвердите, что вы не робот."));
         verify(userRepository, never()).save(any());
     }
 
     @Test
     void testRegisterWithPasswordMismatch() {
-        Map<String, String> captcha = new HashMap<>();
-        captcha.put("id", "new-id");
-        captcha.put("question", "2 + 3 = ?");
-
         registerDto.setConfirmPassword("differentPassword");
-        when(captchaService.validateCaptcha(anyString(), anyString())).thenReturn(true);
-        when(captchaService.generateCaptcha()).thenReturn(captcha);
+        jakarta.servlet.http.HttpServletRequest request = createMockRequest();
+        when(captchaService.verifyRecaptcha("test-recaptcha-response")).thenReturn(true);
 
-        String viewName = authController.register(registerDto, model);
+        String viewName = authController.register(registerDto, model, request);
 
         assertEquals("register", viewName);
         verify(model).addAttribute(eq("error"), eq("Пароли не совпадают"));
@@ -140,15 +128,11 @@ class AuthControllerTest {
 
     @Test
     void testRegisterWithoutTerms() {
-        Map<String, String> captcha = new HashMap<>();
-        captcha.put("id", "new-id");
-        captcha.put("question", "2 + 3 = ?");
-
         registerDto.setTerms(false);
-        when(captchaService.validateCaptcha(anyString(), anyString())).thenReturn(true);
-        when(captchaService.generateCaptcha()).thenReturn(captcha);
+        jakarta.servlet.http.HttpServletRequest request = createMockRequest();
+        when(captchaService.verifyRecaptcha("test-recaptcha-response")).thenReturn(true);
 
-        String viewName = authController.register(registerDto, model);
+        String viewName = authController.register(registerDto, model, request);
 
         assertEquals("register", viewName);
         verify(model).addAttribute(eq("error"), eq("Необходимо принять условия использования"));
@@ -157,15 +141,11 @@ class AuthControllerTest {
 
     @Test
     void testRegisterWithExistingUsername() {
-        Map<String, String> captcha = new HashMap<>();
-        captcha.put("id", "new-id");
-        captcha.put("question", "2 + 3 = ?");
-
-        when(captchaService.validateCaptcha(anyString(), anyString())).thenReturn(true);
+        jakarta.servlet.http.HttpServletRequest request = createMockRequest();
+        when(captchaService.verifyRecaptcha("test-recaptcha-response")).thenReturn(true);
         when(userRepository.existsByUsername("ivan")).thenReturn(true);
-        when(captchaService.generateCaptcha()).thenReturn(captcha);
 
-        String viewName = authController.register(registerDto, model);
+        String viewName = authController.register(registerDto, model, request);
 
         assertEquals("register", viewName);
         verify(model).addAttribute(eq("error"), eq("Пользователь с таким логином уже существует"));
@@ -174,16 +154,12 @@ class AuthControllerTest {
 
     @Test
     void testRegisterWithExistingEmail() {
-        Map<String, String> captcha = new HashMap<>();
-        captcha.put("id", "new-id");
-        captcha.put("question", "2 + 3 = ?");
-
-        when(captchaService.validateCaptcha(anyString(), anyString())).thenReturn(true);
+        jakarta.servlet.http.HttpServletRequest request = createMockRequest();
+        when(captchaService.verifyRecaptcha("test-recaptcha-response")).thenReturn(true);
         when(userRepository.existsByUsername("ivan")).thenReturn(false);
         when(userRepository.existsByEmail("ivan@test.com")).thenReturn(true);
-        when(captchaService.generateCaptcha()).thenReturn(captcha);
 
-        String viewName = authController.register(registerDto, model);
+        String viewName = authController.register(registerDto, model, request);
 
         assertEquals("register", viewName);
         verify(model).addAttribute(eq("error"), eq("Пользователь с таким email уже существует"));
@@ -192,7 +168,9 @@ class AuthControllerTest {
 
     @Test
     void testRegisterWithUserRole() {
-        when(captchaService.validateCaptcha(anyString(), anyString())).thenReturn(true);
+        jakarta.servlet.http.HttpServletRequest request = createMockRequest();
+        when(request.getSession()).thenReturn(mock(jakarta.servlet.http.HttpSession.class));
+        when(captchaService.verifyRecaptcha("test-recaptcha-response")).thenReturn(true);
         when(userRepository.existsByUsername(anyString())).thenReturn(false);
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
         when(roleRepository.findByName("ROLE_USER")).thenReturn(Optional.of(userRole));
@@ -203,9 +181,9 @@ class AuthControllerTest {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(auth);
 
-        String viewName = authController.register(registerDto, model);
+        String viewName = authController.register(registerDto, model, request);
 
-        assertEquals("redirect:/", viewName);
+        assertEquals("redirect:/user/dashboard", viewName);
         verify(userRepository).save(any(User.class));
         verify(roleRepository).findByName("ROLE_USER");
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
@@ -217,7 +195,9 @@ class AuthControllerTest {
         
         savedUser.setRoles(Collections.singletonList(accountantRole));
 
-        when(captchaService.validateCaptcha(anyString(), anyString())).thenReturn(true);
+        jakarta.servlet.http.HttpServletRequest request = createMockRequest();
+        when(request.getSession()).thenReturn(mock(jakarta.servlet.http.HttpSession.class));
+        when(captchaService.verifyRecaptcha("test-recaptcha-response")).thenReturn(true);
         when(userRepository.existsByUsername(anyString())).thenReturn(false);
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
         when(roleRepository.findByName("ROLE_ACCOUNTANT")).thenReturn(Optional.of(accountantRole));
@@ -228,9 +208,9 @@ class AuthControllerTest {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(auth);
 
-        String viewName = authController.register(registerDto, model);
+        String viewName = authController.register(registerDto, model, request);
 
-        assertEquals("redirect:/", viewName);
+        assertEquals("redirect:/accountant/dashboard", viewName);
         verify(userRepository).save(any(User.class));
         verify(roleRepository).findByName("ROLE_ACCOUNTANT");
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
@@ -238,20 +218,16 @@ class AuthControllerTest {
 
     @Test
     void testRegisterWithInvalidRole() {
-        Map<String, String> captcha = new HashMap<>();
-        captcha.put("id", "new-id");
-        captcha.put("question", "2 + 3 = ?");
-
         registerDto.setRole("ROLE_INVALID");
-        when(captchaService.validateCaptcha(anyString(), anyString())).thenReturn(true);
+        jakarta.servlet.http.HttpServletRequest request = createMockRequest();
+        when(captchaService.verifyRecaptcha("test-recaptcha-response")).thenReturn(true);
         when(userRepository.existsByUsername(anyString())).thenReturn(false);
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
-        when(captchaService.generateCaptcha()).thenReturn(captcha);
 
-        String viewName = authController.register(registerDto, model);
+        String viewName = authController.register(registerDto, model, request);
 
         assertEquals("register", viewName);
-        verify(model).addAttribute(eq("error"), eq("Неверная роль. Выберите роль пользователя или бухгалтера."));
+        verify(model).addAttribute(eq("error"), eq("Неверная роль. Выберите роль пользователя, бухгалтера или администратора."));
         verify(userRepository, never()).save(any());
     }
 
@@ -259,7 +235,9 @@ class AuthControllerTest {
     void testRegisterWithDefaultRoleWhenRoleIsEmpty() {
         registerDto.setRole("");
         
-        when(captchaService.validateCaptcha(anyString(), anyString())).thenReturn(true);
+        jakarta.servlet.http.HttpServletRequest request = createMockRequest();
+        when(request.getSession()).thenReturn(mock(jakarta.servlet.http.HttpSession.class));
+        when(captchaService.verifyRecaptcha("test-recaptcha-response")).thenReturn(true);
         when(userRepository.existsByUsername(anyString())).thenReturn(false);
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
         when(roleRepository.findByName("ROLE_USER")).thenReturn(Optional.of(userRole));
@@ -270,15 +248,16 @@ class AuthControllerTest {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(auth);
 
-        String viewName = authController.register(registerDto, model);
+        String viewName = authController.register(registerDto, model, request);
 
-        assertEquals("redirect:/", viewName);
+        assertEquals("redirect:/user/dashboard", viewName);
         verify(roleRepository).findByName("ROLE_USER");
     }
 
     @Test
     void testRegisterWithAuthenticationFailure() {
-        when(captchaService.validateCaptcha(anyString(), anyString())).thenReturn(true);
+        jakarta.servlet.http.HttpServletRequest request = createMockRequest();
+        when(captchaService.verifyRecaptcha("test-recaptcha-response")).thenReturn(true);
         when(userRepository.existsByUsername(anyString())).thenReturn(false);
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
         when(roleRepository.findByName("ROLE_USER")).thenReturn(Optional.of(userRole));
@@ -287,26 +266,11 @@ class AuthControllerTest {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenThrow(new RuntimeException("Authentication failed"));
 
-        String viewName = authController.register(registerDto, model);
+        String viewName = authController.register(registerDto, model, request);
 
         assertEquals("redirect:/login?registered=true", viewName);
         verify(userRepository).save(any(User.class));
     }
 
-    @Test
-    void testGetCaptcha() {
-        Map<String, String> captcha = new HashMap<>();
-        captcha.put("id", "test-id");
-        captcha.put("question", "2 + 3 = ?");
-
-        when(captchaService.generateCaptcha()).thenReturn(captcha);
-
-        var response = authController.getCaptcha();
-
-        assertNotNull(response);
-        assertEquals(200, response.getStatusCodeValue());
-        assertEquals(captcha, response.getBody());
-        verify(captchaService).generateCaptcha();
-    }
 }
 

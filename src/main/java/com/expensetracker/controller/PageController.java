@@ -44,5 +44,10 @@ public class PageController {
         model.addAttribute("success", "Спасибо! Ваше сообщение отправлено. Мы свяжемся с вами в ближайшее время.");
         return "contact";
     }
+
+    @GetMapping("/access-denied")
+    public String accessDenied() {
+        return "access-denied";
+    }
 }
 

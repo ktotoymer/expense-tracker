@@ -49,7 +49,13 @@
           </div>
         </div>
         <div class="category-actions" style="display: flex; gap: 0.5rem; margin-top: auto; width: 100%; box-sizing: border-box; align-items: stretch;">
-          <button class="btn btn-outline" style="flex: 1; min-width: 0; padding: 0.6rem 0.5rem; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center; gap: 0.3rem; height: 100%;" onclick="editCategory([[${category.id}]], '[[${category.name}]]', '[[${category.description}]]', '[[${category.color}]]', [[${category.user.id}]])">
+          <button type="button" class="btn btn-outline edit-category-btn" 
+                  style="flex: 1; min-width: 0; padding: 0.6rem 0.5rem; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center; gap: 0.3rem; height: 100%;"
+                  th:data-id="${category.id}"
+                  th:data-name="${category.name}"
+                  th:data-description="${category.description != null ? category.description : ''}"
+                  th:data-color="${category.color}"
+                  th:data-user-id="${category.user.id}">
             <i class="fas fa-edit" style="flex-shrink: 0;"></i> <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Редактировать</span>
           </button>
           <form th:action="@{/admin/categories/{id}/delete(id=${category.id})}" method="post" style="flex: 1; min-width: 0; display: flex; margin: 0;">
@@ -138,7 +144,7 @@
     document.getElementById('categoryId').value = id;
     document.getElementById('addCategoryForm').action = '/admin/categories/' + id + '/update';
     document.getElementById('categorySubmitBtn').innerHTML = '<i class="fas fa-save"></i> Обновить';
-    document.getElementById('categoryName').value = name;
+    document.getElementById('categoryName').value = name || '';
     document.getElementById('categoryDescription').value = description || '';
     document.getElementById('categoryColor').value = color || '#667eea';
     document.getElementById('categoryUserId').value = userId;
@@ -150,12 +156,32 @@
     document.getElementById('addCategoryForm').reset();
   }
 
-  window.onclick = function(event) {
+  // Обработчик для кнопок редактирования через data-атрибуты
+  document.addEventListener('DOMContentLoaded', function() {
+    const editButtons = document.querySelectorAll('.edit-category-btn');
+    editButtons.forEach(function(button) {
+      button.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const id = this.getAttribute('data-id');
+        const name = this.getAttribute('data-name') || '';
+        const description = this.getAttribute('data-description') || '';
+        const color = this.getAttribute('data-color') || '#667eea';
+        const userId = this.getAttribute('data-user-id');
+        editCategory(id, name, description, color, userId);
+      });
+    });
+
+    // Обработчик закрытия модального окна при клике вне его
     const modal = document.getElementById('addCategoryModal');
-    if (event.target === modal) {
-      closeAddCategoryModal();
+    if (modal) {
+      modal.addEventListener('click', function(event) {
+        if (event.target === modal) {
+          closeAddCategoryModal();
+        }
+      });
     }
-  }
+  });
 </script>
 </body>
 </html>

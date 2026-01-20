@@ -25,7 +25,7 @@ public class AIService {
     private final HttpClient client;
 
     public AIService(@Value("${OPEN_API_KEY:}") String apiKey,
-                     @Value("${OPENROUTER_API_BASE:https://openrouter.ai/api/v1}") String apiBase) {
+                     @Value("${OPENROUTER_API_BASE}") String apiBase) {
         this.apiKey = apiKey;
         this.apiBase = apiBase;
         this.mapper = new ObjectMapper();

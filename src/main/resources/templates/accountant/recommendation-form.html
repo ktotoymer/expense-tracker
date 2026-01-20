@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title th:text="${recommendation?.id != null ? 'Редактирование рекомендации' : 'Создание рекомендации'} - Expense Tracker</title>
+  <title th:text="${(recommendation?.id != null ? 'Редактирование рекомендации' : 'Создание рекомендации') + ' - Expense Tracker'}"></title>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -24,24 +24,68 @@
     <!-- Recommendation Form -->
     <div class="card" style="margin: 0 2rem 2rem 2rem;">
       <div class="card-body">
-        <form th:action="${recommendation?.id != null ? @/accountant/recommendations/{id}/update(id=${recommendation.id}) : @/accountant/recommendations/create}" method="post">
+        <!-- Form for creating new recommendation -->
+        <form th:if="${recommendation?.id == null}" th:action="@{/accountant/recommendations/create}" method="post">
           <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-          
-          <div th:if="${recommendation?.id == null}">
-            <input type="hidden" name="userId" th:value="${targetUser?.id}"/>
-          </div>
+          <input type="hidden" name="userId" th:value="${targetUser?.id}"/>
 
           <div class="form-group">
             <label for="message">Текст рекомендации</label>
             <textarea id="message" name="message" class="form-control" rows="10" required 
-                      th:text="${recommendation?.message}">Введите текст рекомендации...</textarea>
+                      placeholder="Введите текст рекомендации..."
+                      th:attr="data-initial-value=${recommendation?.message}"></textarea>
             <small class="form-text text-muted">Опишите рекомендации для пользователя по управлению его финансами.</small>
           </div>
+          <script>
+            (function() {
+              const textarea = document.getElementById('message');
+              if (textarea) {
+                const initialValue = textarea.getAttribute('data-initial-value');
+                if (initialValue) {
+                  textarea.value = initialValue;
+                }
+              }
+            })();
+          </script>
 
           <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
             <button type="submit" class="btn btn-primary">
               <i class="fas fa-save"></i>
-              <span th:text="${recommendation?.id != null ? 'Сохранить изменения' : 'Создать рекомендацию'}">Создать рекомендацию</span>
+              <span>Создать рекомендацию</span>
+            </button>
+            <a href="/accountant/recommendations" class="btn btn-secondary">
+              <i class="fas fa-times"></i> Отмена
+            </a>
+          </div>
+        </form>
+
+        <!-- Form for editing existing recommendation -->
+        <form th:if="${recommendation?.id != null}" th:action="@{/accountant/recommendations/{id}/update(id=${recommendation.id})}" method="post">
+          <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+          <div class="form-group">
+            <label for="message">Текст рекомендации</label>
+            <textarea id="message-edit" name="message" class="form-control" rows="10" required 
+                      placeholder="Введите текст рекомендации..."
+                      th:attr="data-initial-value=${recommendation?.message}"></textarea>
+            <small class="form-text text-muted">Опишите рекомендации для пользователя по управлению его финансами.</small>
+          </div>
+          <script>
+            (function() {
+              const textarea = document.getElementById('message-edit');
+              if (textarea) {
+                const initialValue = textarea.getAttribute('data-initial-value');
+                if (initialValue) {
+                  textarea.value = initialValue;
+                }
+              }
+            })();
+          </script>
+
+          <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save"></i>
+              <span>Сохранить изменения</span>
             </button>
             <a href="/accountant/recommendations" class="btn btn-secondary">
               <i class="fas fa-times"></i> Отмена
