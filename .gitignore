@@ -53,3 +53,8 @@ spring-devtools.properties
 
 # Sensitive configuration files
 src/main/resources/application.properties
+
+# Large data files
+*.csv
+data.csv
+public/data.csv
