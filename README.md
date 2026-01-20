@@ -58,6 +58,24 @@ mvn spring-boot:run
 - `src/main/resources/static/` - статические ресурсы (CSS, JS)
 - `src/test/` - тесты
 
+## Деплой на Render
+
+### Настройки для Render:
+
+**Environment:** Java  
+**Build Command:** `./mvnw clean package -DskipTests`  
+**Start Command:** `java -jar target/expense-tracker-0.0.1-SNAPSHOT.jar`
+
+### Переменные окружения:
+- `JAVA_VERSION=21`
+- `SPRING_DATASOURCE_URL` - URL базы данных
+- `SPRING_DATASOURCE_USERNAME` - имя пользователя БД
+- `SPRING_DATASOURCE_PASSWORD` - пароль БД
+- `RECAPTCHA_SITE_KEY` - ключ reCAPTCHA
+- `RECAPTCHA_SECRET_KEY` - секретный ключ reCAPTCHA
+- `OPEN_API_KEY` - API ключ OpenRouter
+- `OPENROUTER_API_BASE=https://openrouter.ai/api/v1`
+
 ## Лицензия
 
 Этот проект создан в учебных целях.
