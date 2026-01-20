@@ -7,14 +7,18 @@ services:
     envVars:
       - key: JAVA_VERSION
         value: 21
-      - key: SPRING_PROFILES_ACTIVE
-        value: production
       - key: SPRING_DATASOURCE_URL
         sync: false
       - key: SPRING_DATASOURCE_USERNAME
         sync: false
       - key: SPRING_DATASOURCE_PASSWORD
         sync: false
+      - key: SPRING_JPA_SHOW_SQL
+        value: false
+      - key: SPRING_JPA_FORMAT_SQL
+        value: false
+      - key: SPRING_THYMELEAF_CACHE
+        value: true
       - key: RECAPTCHA_SITE_KEY
         sync: false
       - key: RECAPTCHA_SECRET_KEY
@@ -23,8 +27,3 @@ services:
         sync: false
       - key: OPENROUTER_API_BASE
         value: https://openrouter.ai/api/v1
-      - key: PORT
-        fromService:
-          type: web
-          name: expense-tracker
-          property: port
