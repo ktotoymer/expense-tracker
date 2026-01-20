@@ -1,0 +1,14 @@
+{
+  "properties": [
+    {
+      "name": "recaptcha.secret.key",
+      "type": "java.lang.String",
+      "description": "Google reCAPTCHA secret key for server-side verification."
+    },
+    {
+      "name": "recaptcha.site.key",
+      "type": "java.lang.String",
+      "description": "Google reCAPTCHA site key for client-side integration."
+    }
+  ]
+}

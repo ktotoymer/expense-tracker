@@ -50,3 +50,6 @@ logs/
 
 # spring boot devtools
 spring-devtools.properties
+
+# Sensitive configuration files
+src/main/resources/application.properties

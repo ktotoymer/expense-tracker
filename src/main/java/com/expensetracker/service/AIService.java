@@ -108,8 +108,8 @@ public class AIService {
         
                 ЗДЕСЬ Я НЕ МОГУ ВАМ ПОМОЧЬ
         
-                Запрос пользователя:""" +
-                " Проанализируй финансовые данные " + financialData + " и дай комплексные рекомендации по улучшению финансового положения"
+                Запрос пользователя: Проанализируй финансовые данные %s и дай комплексные рекомендации по улучшению финансового положения"""
+                        .formatted(financialData)
                 , 300);
     }
 
@@ -135,13 +135,13 @@ public class AIService {
         
                 ЗДЕСЬ Я НЕ МОГУ ВАМ ПОМОЧЬ
         
-                Запрос пользователя:""" +
-                " Проанализируй финансовые данные " + financialData + " и дай прогноз финансового положения с практическими советами"
+                Запрос пользователя: Проанализируй финансовые данные %s и дай прогноз финансового положения с практическими советами"""
+                        .formatted(financialData)
                 , 300);
     }
 
     // Метод отправки запроса на DeepSeek через OpenRouter
-    private String sendMessage(String content, int maxTokens) throws Exception {
+    private String sendMessage(String content, int maxTokens) {
         try {
             // Проверка наличия API ключа
             if (apiKey == null || apiKey.trim().isEmpty()) {
@@ -211,9 +211,16 @@ public class AIService {
             String result = contentNode.asText();
             logger.debug("Successfully received response from OpenRouter");
             return result;
-        } catch (Exception e) {
-            logger.error("Error calling OpenRouter API: {}", e.getMessage(), e);
-            throw e;
+        } catch (java.io.IOException e) {
+            logger.error("Error calling OpenRouter API (IO): {}", e.getMessage(), e);
+            throw new RuntimeException("Ошибка при обращении к сервису ИИ: " + e.getMessage(), e);
+        } catch (InterruptedException e) {
+            logger.error("Error calling OpenRouter API (Interrupted): {}", e.getMessage(), e);
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Ошибка при обращении к сервису ИИ: " + e.getMessage(), e);
+        } catch (IllegalArgumentException e) {
+            logger.error("Error calling OpenRouter API (Invalid argument): {}", e.getMessage(), e);
+            throw new RuntimeException("Ошибка при обращении к сервису ИИ: " + e.getMessage(), e);
         }
     }
 }
